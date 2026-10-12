@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IC Tracker">
+<meta name="theme-color" content="#0e1116">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<title>IC Resource Tracker</title>
+<style>
+:root{--bg:#0e1116;--panel:#171c23;--panel2:#212833;--text:#eef2f6;--muted:#93a0ad;--border:#2c3541;--amber:#f59e0b;--blue:#3b82f6;--green:#22c55e;--gray:#6b7280;--red:#ef4444;}
+[data-theme=light]{--bg:#e9edf2;--panel:#fff;--panel2:#f3f5f8;--text:#0f172a;--muted:#4b5563;--border:#c9d1dc;--amber:#d97706;--blue:#2563eb;--green:#15803d;--gray:#6b7280;--red:#dc2626;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;border:0;background:none}
+input,textarea,select{font:inherit;font-size:17px;color:var(--text);background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:11px 12px;width:100%;margin-top:4px}
+input:focus,textarea:focus{outline:2px solid var(--blue);outline-offset:0}
+h2.section{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:26px 0 10px}
+.muted{color:var(--muted)}
+.btn{min-height:46px;padding:0 16px;border-radius:10px;background:var(--panel2);border:1px solid var(--border);font-weight:600;white-space:nowrap}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.danger{background:transparent;border-color:var(--red);color:var(--red)}
+.btn.ghost{background:transparent}
+.btn:active,.qa:active,.sbtn:active,.mini:active,.type-tile:active,.inc-row:active,.card-main:active{transform:scale(.97)}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.logo{width:42px;height:42px;border-radius:10px;background:var(--red);color:#fff;font-weight:800;display:grid;place-items:center;font-size:18px;flex:none}
+.title{font-size:20px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clock{text-align:right;flex:none}
+.clock .big{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.clock .small{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Home */
+.home{padding:8px 16px 40px;max-width:1100px;margin:0 auto}
+.type-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.type-tile{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:26px 14px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.ti-icon{font-size:52px;line-height:1}
+.ti-label{font-size:20px;font-weight:700}
+.inc-list{display:flex;flex-direction:column;gap:10px}
+.inc-row{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px 16px;text-align:left;width:100%}
+.inc-row.closed{opacity:.7}
+.ir-icon{font-size:32px}
+.ir-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.ir-title{font-size:18px;font-weight:700}
+.ir-sub{font-size:14px;color:var(--muted)}
+.ir-counts{display:flex;gap:6px}
+.pill{min-width:34px;height:30px;padding:0 8px;border-radius:15px;background:var(--c);color:var(--fg,#fff);display:inline-grid;place-items:center;font-weight:700;font-size:15px}
+.install-tip{margin-top:28px;padding:14px 16px;border:1px dashed var(--border);border-radius:12px;color:var(--muted);font-size:15px}
+
+/* Incident */
+.closed-banner{margin:12px 16px 0;padding:12px 16px;border-radius:12px;background:var(--panel2);border:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.closed-banner b{flex:1}
+.summary{display:flex;gap:10px;padding:12px 16px 0;flex-wrap:wrap}
+.sum{flex:1;min-width:120px;background:var(--panel);border:1px solid var(--border);border-top:5px solid var(--c);border-radius:12px;padding:8px 12px}
+.sum .n{font-size:30px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.sum .l{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.quickadd{display:flex;gap:8px;padding:12px 16px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.quickadd::-webkit-scrollbar{display:none}
+.qa{flex:none;min-height:48px;padding:0 16px;border-radius:24px;background:var(--panel);border:1px solid var(--border);font-weight:600;white-space:nowrap}
+.qa.more{border-style:dashed}
+.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:14px 16px 40px;align-items:start}
+.col{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-height:120px}
+.col-head{background:var(--c);color:var(--fg,#fff);padding:10px 12px;font-weight:800;display:flex;justify-content:space-between;align-items:center;font-size:16px}
+.col-head .cnt{background:rgba(0,0,0,.22);border-radius:12px;padding:1px 10px}
+.col-body{padding:8px;display:flex;flex-direction:column;gap:8px}
+.empty{color:var(--muted);text-align:center;padding:18px 6px;font-size:14px}
+.card{background:var(--panel2);border:1px solid var(--border);border-left:6px solid var(--c);border-radius:10px}
+.card.left-scene{opacity:.65}
+.card.overdue{border-color:var(--red);box-shadow:0 0 0 2px var(--red);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 4px var(--red)}}
+.card-main{display:block;width:100%;text-align:left;padding:10px 10px 6px}
+.card-top{display:flex;align-items:center;gap:8px}
+.abbr{font-size:12px;font-weight:800;background:var(--border);border-radius:6px;padding:2px 6px;flex:none}
+.unit{font-size:18px;font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pers{font-size:14px;font-weight:700;flex:none}
+.card-sub{font-size:13px;color:var(--muted);margin-top:2px}
+.assign{font-size:14px;font-weight:600;margin-top:4px}
+.card-time{font-size:13px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+.card-time b{color:var(--text)}
+.card.overdue .card-time b{color:var(--red)}
+.card-actions{display:flex;gap:6px;padding:0 8px 8px}
+.mini{flex:1;min-height:40px;border-radius:8px;background:var(--c);color:var(--fg,#fff);font-weight:700;font-size:14px;padding:0 4px}
+
+/* Modal */
+#modal-root:empty{display:none}
+.backdrop{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding:calc(env(safe-area-inset-top) + 24px) 12px 24px;overflow-y:auto}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:16px;width:100%;max-width:640px;padding:18px 20px 20px}
+.modal h3{margin:0 0 4px;font-size:22px;display:flex;align-items:center;gap:8px}
+.modal label,.field{display:block;margin-top:14px;font-size:14px;font-weight:600;color:var(--muted)}
+.field-label{display:block;margin-top:16px;font-size:14px;font-weight:600;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.modal-actions{display:flex;gap:10px;margin-top:20px;align-items:center}
+.modal-actions .spacer{flex:1}
+.modal-actions:not(:has(.spacer)){justify-content:flex-end}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.chip{min-height:42px;padding:0 14px;border-radius:21px;background:var(--panel2);border:1px solid var(--border);font-weight:600;font-size:15px}
+.chip.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.chip.saved{border-style:dashed}
+.status-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px}
+.status-btns.four{grid-template-columns:repeat(4,1fr)}
+.sbtn{min-height:64px;border-radius:12px;background:var(--c);color:var(--fg,#fff);font-weight:800;font-size:16px;padding:6px;line-height:1.2}
+.sbtn.current{outline:4px solid var(--text);outline-offset:2px}
+.stepper{display:flex;gap:6px;margin-top:4px}
+.stepper button{width:52px;flex:none;border-radius:10px;background:var(--panel2);border:1px solid var(--border);font-size:24px;font-weight:700}
+.stepper input{margin:0;text-align:center;font-weight:700}
+.check{display:flex!important;align-items:center;gap:10px;color:var(--text)!important}
+.check input{width:24px;height:24px;margin:0}
+.timeline{list-style:none;margin:6px 0 0;padding:0;font-size:15px}
+.timeline li{padding:6px 0;border-bottom:1px solid var(--border)}
+.loglist{list-style:none;margin:10px 0 0;padding:0;max-height:55vh;overflow-y:auto}
+.loglist li{padding:8px 2px;border-bottom:1px solid var(--border);display:flex;gap:12px;font-size:15px}
+.loglist li .t{font-weight:700;font-variant-numeric:tabular-nums;flex:none}
+.loglist li.note{background:rgba(59,130,246,.12)}
+.report{white-space:pre-wrap;font:14px/1.45 ui-monospace,Menlo,monospace;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px;max-height:50vh;overflow:auto;margin-top:10px}
+.roster{list-style:none;padding:0;margin:6px 0 0;max-height:240px;overflow-y:auto}
+.roster li{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)}
+.roster li span{flex:1}
+.roster li button{color:var(--red);font-weight:700;min-height:36px;padding:0 10px}
+.seg{display:flex;gap:8px;margin-top:6px}
+
+/* Toast */
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 20px);transform:translateX(-50%) translateY(150%);transition:transform .25s;z-index:30;background:#111827;color:#fff;border-radius:12px;padding:10px 12px 10px 16px;display:flex;align-items:center;gap:14px;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:92vw;font-weight:600}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast button{background:#374151;color:#fff;border-radius:8px;min-height:38px;padding:0 14px;font-weight:700}
+
+#print{display:none}
+@media (max-width:760px){
+  .board{grid-template-columns:1fr}
+  .grid2{grid-template-columns:1fr}
+  .status-btns.four{grid-template-columns:repeat(2,1fr)}
+  .top-actions .lbl{display:none}
+}
+@media print{
+  #app,#modal-root,#toast{display:none!important}
+  #print{display:block;color:#000;font:12px/1.4 -apple-system,sans-serif}
+  #print h1{font-size:18px;margin:0 0 4px}
+  #print table{width:100%;border-collapse:collapse;margin:8px 0 16px}
+  #print th,#print td{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top}
+  #print th{background:#eee}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modal-root"></div>
+<div id="toast"></div>
+<div id="print"></div>
+<input type="file" id="import-file" accept=".json,application/json" hidden>
+<script>
+(function(){
+'use strict';
+
+// ---------- Configuration ----------
+const STATUSES = [
+  {key:'enroute', label:'En Route',            short:'En Route', color:'var(--amber)', fg:'#1a1200'},
+  {key:'staging', label:'On Scene – Staging',  short:'Staging',  color:'var(--blue)',  fg:'#fff'},
+  {key:'working', label:'On Scene – Working',  short:'Working',  color:'var(--green)', fg:'#fff'},
+  {key:'left',    label:'Left Scene',          short:'Left',     color:'var(--gray)',  fg:'#fff'},
+];
+const ST = Object.fromEntries(STATUSES.map(s => [s.key, s]));
+const ON_SCENE = ['staging', 'working'];
+
+// pers = default personnel when adding that type
+const RTYPES = {
+  engine:   {label:'Engine',             abbr:'E',   pers:3},
+  tanker:   {label:'Tanker',             abbr:'T',   pers:1},
+  brush:    {label:'Brush Truck',        abbr:'BR',  pers:2},
+  ladder:   {label:'Ladder / Truck',     abbr:'L',   pers:3},
+  rescue:   {label:'Rescue',             abbr:'R',   pers:2},
+  ambulance:{label:'Ambulance',          abbr:'A',   pers:2},
+  command:  {label:'Chief / Command',    abbr:'C',   pers:1},
+  pov:      {label:'POV Volunteer',      abbr:'POV', pers:1},
+  law:      {label:'Law Enforcement',    abbr:'LE',  pers:1},
+  dozer:    {label:'Dozer / Forestry',   abbr:'DZ',  pers:1},
+  air:      {label:'Air / Helicopter',   abbr:'AIR', pers:2},
+  hazmat:   {label:'Hazmat',             abbr:'HM',  pers:2},
+  utility:  {label:'Utility / Public Works', abbr:'U', pers:1},
+  other:    {label:'Other',              abbr:'O',   pers:1},
+};
+
+const ITYPES = {
+  structure:{label:'Structure Fire', icon:'🏠', quick:['engine','tanker','ladder','rescue','ambulance','command','pov','law','utility'],
+    assign:['Fire Attack','Backup Line','Water Supply','Search','Ventilation','RIT','Exposure Protection','Rehab','Medical','Overhaul','Div A','Div B','Div C','Div D']},
+  wildland: {label:'Wildland Fire',  icon:'🌲', quick:['brush','tanker','engine','dozer','pov','command','air','law','ambulance'],
+    assign:['Head','Left Flank','Right Flank','Div A','Div Z','Structure Protection','Water Supply','Mop-up','Line Construction','Rehab','Medical']},
+  mvc:      {label:'Vehicle Collision', icon:'🚗', quick:['engine','rescue','ambulance','law','command','pov','utility','air'],
+    assign:['Extrication','Patient Care','Fire Suppression','Traffic Control','Landing Zone','Hazard Control','Transport']},
+  other:    {label:'Other Incident', icon:'⚠️', quick:['engine','rescue','ambulance','law','command','pov','hazmat','utility'],
+    assign:['Operations','Staging','Medical','Traffic Control','Rehab']},
+};
+
+// Quick buttons shown on each card per current status
+const QUICK = {enroute:['staging','working'], staging:['working','left'], working:['staging','left'], left:['staging']};
+
+// ---------- Helpers ----------
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const now = () => Date.now();
+const pad = n => String(n).padStart(2, '0');
+const fmtTime = t => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const fmtDate = t => new Date(t).toLocaleDateString([], {month:'short', day:'numeric', year:'numeric'});
+function fmtDur(ms, withSecs){
+  const s = Math.floor(Math.max(0, ms) / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60);
+  if (withSecs) return h + ':' + pad(m) + ':' + pad(s % 60);
+  return h ? h + 'h ' + pad(m) + 'm' : m + 'm';
+}
+const stStyle = k => `--c:${ST[k].color};--fg:${ST[k].fg}`;
+const rt = r => RTYPES[r.rtype] || RTYPES.other;
+
+// ---------- Storage ----------
+const KEY = 'icTracker.v1';
+const DEFAULTS = {incidents:[], roster:[], view:{screen:'home'}, settings:{icName:'', org:'', theme:'dark', rehabMin:45, addAnother:false}};
+let S = load();
+function load(){
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY));
+    if (d && Array.isArray(d.incidents)) return {...DEFAULTS, ...d, settings:{...DEFAULTS.settings, ...d.settings}};
+  } catch (e) {}
+  return JSON.parse(JSON.stringify(DEFAULTS));
+}
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch (e) { toast('⚠️ Could not save — storage full or unavailable'); }
+}
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+let view = S.view || {screen:'home'};
+const inc = () => S.incidents.find(i => i.id === view.id);
+const findRes = id => { const i = inc(); return i && i.resources.find(r => r.id === id); };
+function go(v){ view = v; S.view = v; save(); closeModal(); render(); window.scrollTo(0, 0); }
+
+function addLog(i, text, isNote){ i.log.push({at:now(), text, note:!!isNote}); }
+
+function counts(i){
+  const c = {enroute:0, staging:0, working:0, left:0, personnel:0, totalPers:0};
+  i.resources.forEach(r => {
+    c[r.status]++;
+    c.totalPers += +r.personnel || 0;
+    if (ON_SCENE.includes(r.status)) c.personnel += +r.personnel || 0;
+  });
+  return c;
+}
+function times(r){
+  const arr = r.history.find(h => ON_SCENE.includes(h.status));
+  const left = r.status === 'left' ? r.statusAt : null;
+  return {arrived: arr && arr.at, left};
+}
+
+// ---------- Rendering ----------
+function render(){
+  document.documentElement.dataset.theme = S.settings.theme;
+  const app = $('#app');
+  if (view.screen === 'incident' && inc()) app.innerHTML = incidentHTML(inc());
+  else { view = {screen:'home'}; app.innerHTML = homeHTML(); }
+  tick();
+  wakeLock(view.screen === 'incident');
+}
+
+function homeHTML(){
+  const active = S.incidents.filter(i => !i.closedAt).sort((a, b) => b.startedAt - a.startedAt);
+  const closed = S.incidents.filter(i => i.closedAt).sort((a, b) => b.startedAt - a.startedAt);
+  const standalone = window.navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  return `
+  <header class="topbar">
+    <div class="brand"><span class="logo">IC</span>
+      <div style="min-width:0"><div class="title">Incident Resource Tracker</div><div class="sub">${esc(S.settings.org || 'Tap a type below to start an incident')}</div></div>
+    </div>
+    <div class="clock"><div class="big" data-clock></div><div class="small">Local time</div></div>
+    <button class="btn ghost" data-action="settings">⚙︎ Settings</button>
+  </header>
+  <main class="home">
+    <h2 class="section">Start a new incident</h2>
+    <div class="type-grid">
+      ${Object.entries(ITYPES).map(([k, t]) => `
+        <button class="type-tile" data-action="new-incident" data-type="${k}">
+          <span class="ti-icon">${t.icon}</span><span class="ti-label">${t.label}</span>
+        </button>`).join('')}
+    </div>
+    ${active.length ? `<h2 class="section">Active incidents</h2><div class="inc-list">${active.map(incRow).join('')}</div>` : ''}
+    ${closed.length ? `<h2 class="section">Closed incidents</h2><div class="inc-list">${closed.map(incRow).join('')}</div>` : ''}
+    ${standalone ? '' : `<div class="install-tip">📲 <b>To install on iPad:</b> tap the Share button in Safari → <b>Add to Home Screen</b>. It will then open full-screen and work without internet.</div>`}
+  </main>`;
+}
+
+function incRow(i){
+  const c = counts(i), t = ITYPES[i.type];
+  return `
+  <button class="inc-row ${i.closedAt ? 'closed' : ''}" data-action="open-incident" data-id="${i.id}">
+    <span class="ir-icon">${t.icon}</span>
+    <span class="ir-main">
+      <span class="ir-title">${esc(i.name || t.label)}</span>
+      <span class="ir-sub">${t.label} · ${fmtDate(i.startedAt)} ${fmtTime(i.startedAt)}${i.closedAt ? ' – closed ' + fmtTime(i.closedAt) : ''} · ${i.resources.length} resources</span>
+    </span>
+    <span class="ir-counts">${STATUSES.map(s => `<span class="pill" style="${stStyle(s.key)}" title="${s.label}">${c[s.key]}</span>`).join('')}</span>
+  </button>`;
+}
+
+function incidentHTML(i){
+  const c = counts(i), t = ITYPES[i.type];
+  return `
+  <header class="topbar">
+    <button class="btn ghost" data-action="home" aria-label="All incidents">‹ <span class="lbl">Incidents</span></button>
+    <div class="brand">
+      <span style="font-size:34px">${t.icon}</span>
+      <div style="min-width:0">
+        <div class="title">${esc(i.name || t.label)}</div>
+        <div class="sub">${t.label} · Started ${fmtTime(i.startedAt)}${i.ic ? ' · IC ' + esc(i.ic) : ''}</div>
+      </div>
+    </div>
+    <div class="clock"><div class="big" data-elapsed="${i.startedAt}" data-end="${i.closedAt || ''}"></div><div class="small">${i.closedAt ? 'Total time' : 'Elapsed · <span data-clock></span>'}</div></div>
+    <div class="top-actions">
+      <button class="btn" data-action="note">📝 <span class="lbl">Note</span></button>
+      <button class="btn" data-action="log">📋 <span class="lbl">Log</span></button>
+      <button class="btn" data-action="report">📄 <span class="lbl">Report</span></button>
+      ${i.closedAt ? '' : `<button class="btn danger" data-action="close-incident">Close <span class="lbl">Incident</span></button>`}
+    </div>
+  </header>
+  ${i.closedAt ? `<div class="closed-banner"><b>Incident closed at ${fmtTime(i.closedAt)}, ${fmtDate(i.closedAt)}</b>
+    <button class="btn" data-action="reopen-incident">Reopen</button>
+    <button class="btn danger" data-action="delete-incident">Delete</button></div>` : ''}
+  <div class="summary">
+    ${STATUSES.map(s => `<div class="sum" style="${stStyle(s.key)}"><div class="n">${c[s.key]}</div><div class="l">${s.label}</div></div>`).join('')}
+    <div class="sum" style="--c:var(--red)"><div class="n">${c.personnel}</div><div class="l">Personnel on scene</div></div>
+  </div>
+  <div class="quickadd">
+    ${t.quick.map(k => `<button class="qa" data-action="add" data-rtype="${k}">+ ${RTYPES[k].label}</button>`).join('')}
+    <button class="qa more" data-action="add" data-rtype="other">+ Other…</button>
+  </div>
+  <div class="board">${STATUSES.map(s => column(i, s)).join('')}</div>`;
+}
+
+function column(i, s){
+  let list = i.resources.filter(r => r.status === s.key);
+  // Longest-in-status first, except Left Scene shows most recent first
+  list.sort((a, b) => s.key === 'left' ? b.statusAt - a.statusAt : a.statusAt - b.statusAt);
+  return `
+  <section class="col">
+    <div class="col-head" style="${stStyle(s.key)}"><span>${s.label}</span><span class="cnt">${list.length}</span></div>
+    <div class="col-body">${list.length ? list.map(card).join('') : `<div class="empty">None</div>`}</div>
+  </section>`;
+}
+
+function card(r){
+  const s = ST[r.status], t = rt(r);
+  return `
+  <div class="card ${r.status === 'left' ? 'left-scene' : ''}" style="${stStyle(r.status)}">
+    <button class="card-main" data-action="resource" data-id="${r.id}">
+      <div class="card-top"><span class="abbr">${t.abbr}</span><span class="unit">${esc(r.unit)}</span><span class="pers">👤 ${+r.personnel || 0}</span></div>
+      <div class="card-sub">${esc(t.label)}${r.agency ? ' · ' + esc(r.agency) : ''}</div>
+      ${r.assignment ? `<div class="assign">📍 ${esc(r.assignment)}</div>` : ''}
+      <div class="card-time">${s.short} ${fmtTime(r.statusAt)} · <b data-since="${r.statusAt}" ${r.status === 'working' ? 'data-warn="1"' : ''}></b></div>
+    </button>
+    <div class="card-actions">
+      ${QUICK[r.status].map(k => `<button class="mini" style="${stStyle(k)}" data-action="set-status" data-id="${r.id}" data-status="${k}">${r.status === 'left' ? '↩ Returned' : '→ ' + ST[k].short}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ---------- Live timers ----------
+function tick(){
+  const t = now(), warnMs = (+S.settings.rehabMin || 0) * 60000;
+  document.querySelectorAll('[data-since]').forEach(el => {
+    const ms = t - +el.dataset.since;
+    el.textContent = fmtDur(ms);
+    if (el.dataset.warn) {
+      const c = el.closest('.card');
+      if (c) c.classList.toggle('overdue', warnMs > 0 && ms >= warnMs);
+    }
+  });
+  document.querySelectorAll('[data-elapsed]').forEach(el => {
+    el.textContent = fmtDur((+el.dataset.end || t) - +el.dataset.elapsed, true);
+  });
+  document.querySelectorAll('[data-clock]').forEach(el => el.textContent = fmtTime(t));
+}
+setInterval(tick, 1000);
+
+// Keep the screen awake while an incident is open
+let lock = null;
+async function wakeLock(want){
+  try {
+    if (want && !lock && 'wakeLock' in navigator && document.visibilityState === 'visible') {
+      lock = await navigator.wakeLock.request('screen');
+      lock.addEventListener('release', () => { lock = null; });
+    } else if (!want && lock) { await lock.release(); lock = null; }
+  } catch (e) { lock = null; }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { wakeLock(view.screen === 'incident'); tick(); } });
+
+// ---------- Modal + toast ----------
+let mctx = {};
+function openModal(html){
+  $('#modal-root').innerHTML = `<div class="backdrop"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
+}
+function closeModal(){ $('#modal-root').innerHTML = ''; mctx = {}; }
+let toastTimer, undoState = null;
+function toast(msg, withUndo){
+  const el = $('#toast');
+  el.innerHTML = `<span>${esc(msg)}</span>${withUndo ? '<button data-action="undo">Undo</button>' : ''}`;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.classList.remove('show'); if (withUndo) undoState = null; }, withUndo ? 6000 : 2500);
+}
+const val = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+
+// ---------- Status changes ----------
+function setStatus(i, r, status){
+  if (r.status === status) return;
+  undoState = {incId:i.id, resId:r.id, status:r.status, statusAt:r.statusAt, hist:r.history.length, log:i.log.length};
+  const from = r.status;
+  r.status = status;
+  r.statusAt = now();
+  r.history.push({status, at:r.statusAt});
+  addLog(i, `${r.unit}: ${ST[from].short} → ${ST[status].label}`);
+  save(); render();
+  toast(`${r.unit} → ${ST[status].label}`, true);
+}
+
+// ---------- Screens / modals ----------
+function newIncidentModal(type){
+  const t = ITYPES[type];
+  openModal(`
+    <h3>${t.icon} New ${t.label}</h3>
+    <label>Incident name / location<input id="f-name" placeholder="e.g. 123 Main St, or Hwy 80 at MM 12" autocomplete="off"></label>
+    <label>Incident Commander<input id="f-ic" value="${esc(S.settings.icName)}" autocomplete="off"></label>
+    <label>Notes (optional)<input id="f-notes" placeholder="Dispatch info, call #, etc." autocomplete="off"></label>
+    <div class="modal-actions"><button class="btn" data-action="close-modal">Cancel</button>
+      <button class="btn primary" data-action="create-incident" data-type="${type}">Start Incident</button></div>`);
+}
+
+function addModal(rtype){
+  const i = inc();
+  rtype = RTYPES[rtype] ? rtype : 'engine';
+  mctx = {rtype};
+  const agencies = [...new Set(S.roster.map(r => r.agency).filter(Boolean))].sort();
+  const assigns = [...new Set([...ITYPES[i.type].assign, ...i.resources.map(r => r.assignment).filter(Boolean)])];
+  openModal(`
+    <h3>Add Resource</h3>
+    <span class="field-label">Type</span>
+    <div class="chips" id="type-chips">
+      ${Object.entries(RTYPES).map(([k, t]) => `<button class="chip ${k === rtype ? 'on' : ''}" data-action="pick-type" data-rtype="${k}">${t.label}</button>`).join('')}
+    </div>
+    <div id="saved-units"></div>
+    <div class="grid2">
+      <label>Unit ID / Name<input id="f-unit" placeholder="e.g. Engine 21 or John Smith" autocomplete="off" autocapitalize="words"></label>
+      <label>Agency / Department<input id="f-agency" list="agency-list" autocomplete="off" autocapitalize="words"></label>
+    </div>
+    <div class="grid2">
+      <div class="field">Personnel<div class="stepper"><button data-action="step" data-d="-1">−</button><input id="f-pers" type="number" inputmode="numeric" min="0" value="${RTYPES[rtype].pers}"><button data-action="step" data-d="1">+</button></div></div>
+      <label>Assignment (optional)<input id="f-assign" list="assign-list" autocomplete="off" placeholder="e.g. Water Supply"></label>
+    </div>
+    <label>Notes (optional)<input id="f-notes" autocomplete="off"></label>
+    <datalist id="agency-list">${agencies.map(a => `<option value="${esc(a)}">`).join('')}</datalist>
+    <datalist id="assign-list">${assigns.map(a => `<option value="${esc(a)}">`).join('')}</datalist>
+    <label class="check"><input type="checkbox" id="f-another" ${S.settings.addAnother ? 'checked' : ''}> Keep this window open to add another</label>
+    <span class="field-label">Add as</span>
+    <div class="status-btns">
+      ${['enroute', 'staging', 'working'].map(k => `<button class="sbtn" style="${stStyle(k)}" data-action="add-resource" data-status="${k}">${ST[k].label}</button>`).join('')}
+    </div>
+    <div class="modal-actions"><button class="btn" data-action="close-modal">Done</button></div>`);
+  renderSaved();
+}
+
+function renderSaved(){
+  const i = inc(), box = $('#saved-units');
+  if (!box) return;
+  const busy = new Set(i.resources.filter(r => r.status !== 'left').map(r => r.unit.toLowerCase()));
+  const list = S.roster.filter(u => u.rtype === mctx.rtype && !busy.has(u.unit.toLowerCase()))
+    .sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0)).slice(0, 30);
+  box.innerHTML = list.length ? `<span class="field-label">Saved ${esc(RTYPES[mctx.rtype].label)} units — tap to fill in</span>
+    <div class="chips">${list.map(u => `<button class="chip saved" data-action="fill-saved" data-unit="${esc(u.unit)}">${esc(u.unit)}${u.agency ? ' · ' + esc(u.agency) : ''}</button>`).join('')}</div>` : '';
+}
+
+function resourceModal(r){
+  const i = inc(), t = rt(r);
+  const assigns = [...new Set([...ITYPES[i.type].assign, ...i.resources.map(x => x.assignment).filter(Boolean)])];
+  openModal(`
+    <h3><span class="abbr">${t.abbr}</span> ${esc(r.unit)}</h3>
+    <div class="muted">${esc(t.label)}${r.agency ? ' · ' + esc(r.agency) : ''} · Added ${fmtTime(r.addedAt)}</div>
+    <span class="field-label">Status — tap to change</span>
+    <div class="status-btns four">
+      ${STATUSES.map(s => `<button class="sbtn ${r.status === s.key ? 'current' : ''}" style="${stStyle(s.key)}" data-action="set-status" data-id="${r.id}" data-status="${s.key}" data-from-modal="1">${s.label}</button>`).join('')}
+    </div>
+    <div class="grid2">
+      <label>Unit ID / Name<input id="e-unit" value="${esc(r.unit)}" autocomplete="off"></label>
+      <label>Agency / Department<input id="e-agency" value="${esc(r.agency)}" autocomplete="off"></label>
+    </div>
+    <div class="grid2">
+      <div class="field">Personnel<div class="stepper"><button data-action="step" data-d="-1">−</button><input id="e-pers" type="number" inputmode="numeric" min="0" value="${+r.personnel || 0}"><button data-action="step" data-d="1">+</button></div></div>
+      <label>Assignment<input id="e-assign" list="assign-list" value="${esc(r.assignment)}" autocomplete="off"></label>
+    </div>
+    <label>Notes<textarea id="e-notes" rows="2">${esc(r.notes)}</textarea></label>
+    <datalist id="assign-list">${assigns.map(a => `<option value="${esc(a)}">`).join('')}</datalist>
+    <span class="field-label">Timeline</span>
+    <ul class="timeline">${r.history.map(h => `<li><b>${fmtTime(h.at)}</b> — ${ST[h.status].label}</li>`).join('')}</ul>
+    <div class="modal-actions">
+      <button class="btn danger" data-action="delete-resource" data-id="${r.id}">Remove</button><span class="spacer"></span>
+      <button class="btn" data-action="close-modal">Cancel</button>
+      <button class="btn primary" data-action="save-resource" data-id="${r.id}">Save</button>
+    </div>`);
+}
+
+// Saves edited fields from the resource modal; logs meaningful changes
+function applyResourceFields(i, r){
+  const unit = val('e-unit') || r.unit, agency = val('e-agency'), pers = Math.max(0, parseInt(val('e-pers')) || 0),
+        assignment = val('e-assign'), notes = val('e-notes');
+  if (unit !== r.unit) addLog(i, `${r.unit} renamed to ${unit}`);
+  if (assignment !== (r.assignment || '')) addLog(i, assignment ? `${unit} assigned: ${assignment}` : `${unit} assignment cleared`);
+  if (pers !== (+r.personnel || 0)) addLog(i, `${unit} personnel: ${+r.personnel || 0} → ${pers}`);
+  Object.assign(r, {unit, agency, personnel:pers, assignment, notes});
+  rememberUnit(r);
+}
+
+function rememberUnit(r){
+  const key = r.unit.toLowerCase();
+  const existing = S.roster.find(u => u.unit.toLowerCase() === key);
+  const entry = {unit:r.unit, rtype:r.rtype, agency:r.agency, personnel:r.personnel, lastUsed:now()};
+  if (existing) Object.assign(existing, entry); else S.roster.push(entry);
+}
+
+function noteModal(){
+  openModal(`
+    <h3>📝 Add Log Note</h3>
+    <label>Note<textarea id="f-note" rows="3" placeholder="e.g. Primary search all clear; PAR complete; Power cut by utility"></textarea></label>
+    <div class="modal-actions"><button class="btn" data-action="close-modal">Cancel</button><button class="btn primary" data-action="add-note">Add to Log</button></div>`);
+  setTimeout(() => { const f = $('#f-note'); if (f) f.focus(); }, 50);
+}
+
+function logModal(){
+  const i = inc();
+  openModal(`
+    <h3>📋 Activity Log</h3>
+    <div class="muted">${i.log.length} entries · newest first</div>
+    <div style="display:flex;gap:8px;margin-top:10px"><input id="f-note" placeholder="Add a note…" style="margin:0" autocomplete="off"><button class="btn primary" data-action="add-note" data-keep="1">Add</button></div>
+    <ul class="loglist">${i.log.slice().reverse().map(l => `<li class="${l.note ? 'note' : ''}"><span class="t">${fmtTime(l.at)}</span><span>${l.note ? '📝 ' : ''}${esc(l.text)}</span></li>`).join('')}</ul>
+    <div class="modal-actions"><button class="btn" data-action="close-modal">Close</button></div>`);
+}
+
+function reportText(i){
+  const t = ITYPES[i.type], c = counts(i), L = [];
+  L.push('INCIDENT RESOURCE REPORT');
+  L.push(t.label + (i.name ? ' — ' + i.name : ''));
+  L.push(`Started: ${fmtDate(i.startedAt)} ${fmtTime(i.startedAt)}` +
+    (i.closedAt ? `   Closed: ${fmtDate(i.closedAt)} ${fmtTime(i.closedAt)}   Duration: ${fmtDur(i.closedAt - i.startedAt)}` : `   (still active — ${fmtDur(now() - i.startedAt)})`));
+  if (i.ic) L.push('Incident Commander: ' + i.ic);
+  if (i.notes) L.push('Notes: ' + i.notes);
+  L.push('', 'STATUS SUMMARY');
+  L.push(STATUSES.map(s => `${s.short}: ${c[s.key]}`).join('   '));
+  L.push(`Personnel on scene: ${c.personnel}   Total resources: ${i.resources.length}   Total personnel used: ${c.totalPers}`);
+  L.push('', 'RESOURCES');
+  i.resources.slice().sort((a, b) => a.addedAt - b.addedAt).forEach(r => {
+    const tm = times(r);
+    L.push(`• ${r.unit} — ${rt(r).label}${r.agency ? ', ' + r.agency : ''} — ${+r.personnel || 0} personnel — ${ST[r.status].label}`);
+    L.push(`    Added ${fmtTime(r.addedAt)}   Arrived ${tm.arrived ? fmtTime(tm.arrived) : '—'}   Left ${tm.left ? fmtTime(tm.left) : '—'}${r.assignment ? '   Assignment: ' + r.assignment : ''}`);
+    if (r.notes) L.push('    Notes: ' + r.notes);
+  });
+  L.push('', 'ACTIVITY LOG');
+  i.log.forEach(l => L.push(`${fmtTime(l.at)}  ${l.note ? '[NOTE] ' : ''}${l.text}`));
+  return L.join('\n');
+}
+
+function reportModal(){
+  const i = inc();
+  mctx.report = reportText(i);
+  openModal(`
+    <h3>📄 Incident Report</h3>
+    <div class="muted">Share by email / Messages / AirDrop, copy it, or print / save as PDF.</div>
+    <div class="report">${esc(mctx.report)}</div>
+    <div class="modal-actions">
+      ${navigator.share ? '<button class="btn primary" data-action="share-report">Share…</button>' : ''}
+      <button class="btn" data-action="copy-report">Copy</button>
+      <button class="btn" data-action="print-report">Print / PDF</button>
+      <span class="spacer"></span><button class="btn" data-action="close-modal">Close</button>
+    </div>`);
+}
+
+function printReport(i){
+  const t = ITYPES[i.type], c = counts(i);
+  $('#print').innerHTML = `
+    <h1>${esc(t.label)}${i.name ? ' — ' + esc(i.name) : ''}</h1>
+    <div>Started ${fmtDate(i.startedAt)} ${fmtTime(i.startedAt)}${i.closedAt ? ' · Closed ' + fmtDate(i.closedAt) + ' ' + fmtTime(i.closedAt) + ' · Duration ' + fmtDur(i.closedAt - i.startedAt) : ''}${i.ic ? ' · IC: ' + esc(i.ic) : ''}</div>
+    ${i.notes ? `<div>Notes: ${esc(i.notes)}</div>` : ''}
+    <div style="margin-top:6px">${STATUSES.map(s => `${s.label}: <b>${c[s.key]}</b>`).join(' &nbsp; ')} &nbsp; Personnel on scene: <b>${c.personnel}</b></div>
+    <table><thead><tr><th>Unit</th><th>Type</th><th>Agency</th><th>Pers.</th><th>Status</th><th>Added</th><th>Arrived</th><th>Left</th><th>Assignment / Notes</th></tr></thead>
+    <tbody>${i.resources.slice().sort((a, b) => a.addedAt - b.addedAt).map(r => { const tm = times(r); return `<tr><td><b>${esc(r.unit)}</b></td><td>${esc(rt(r).label)}</td><td>${esc(r.agency)}</td><td>${+r.personnel || 0}</td><td>${ST[r.status].label}</td><td>${fmtTime(r.addedAt)}</td><td>${tm.arrived ? fmtTime(tm.arrived) : '—'}</td><td>${tm.left ? fmtTime(tm.left) : '—'}</td><td>${esc([r.assignment, r.notes].filter(Boolean).join(' — '))}</td></tr>`; }).join('')}</tbody></table>
+    <h1>Activity Log</h1>
+    <table><tbody>${i.log.map(l => `<tr><td style="width:60px">${fmtTime(l.at)}</td><td>${l.note ? '<b>NOTE:</b> ' : ''}${esc(l.text)}</td></tr>`).join('')}</tbody></table>`;
+  window.print();
+}
+
+function settingsModal(){
+  const s = S.settings;
+  const roster = S.roster.slice().sort((a, b) => a.unit.localeCompare(b.unit, undefined, {numeric:true}));
+  openModal(`
+    <h3>⚙︎ Settings</h3>
+    <div class="grid2">
+      <label>Default Incident Commander<input id="s-ic" value="${esc(s.icName)}" autocomplete="off"></label>
+      <label>Agency name (shown on home screen)<input id="s-org" value="${esc(s.org)}" autocomplete="off"></label>
+    </div>
+    <div class="grid2">
+      <label>Rehab alert — flag units working longer than (minutes, 0 = off)<input id="s-rehab" type="number" inputmode="numeric" min="0" value="${+s.rehabMin || 0}"></label>
+      <div class="field">Display
+        <div class="seg"><button class="chip ${s.theme === 'dark' ? 'on' : ''}" data-action="theme" data-v="dark">🌙 Dark</button><button class="chip ${s.theme === 'light' ? 'on' : ''}" data-action="theme" data-v="light">☀️ Light (sunlight)</button></div>
+      </div>
+    </div>
+    <span class="field-label">Saved units (${roster.length}) — remembered automatically when you add resources</span>
+    ${roster.length ? `<ul class="roster">${roster.map(u => `<li><span><b>${esc(u.unit)}</b> <span class="muted">· ${esc((RTYPES[u.rtype] || RTYPES.other).label)}${u.agency ? ' · ' + esc(u.agency) : ''}</span></span><button data-action="del-roster" data-unit="${esc(u.unit)}">Remove</button></li>`).join('')}</ul>` : '<div class="muted" style="margin-top:6px">None yet.</div>'}
+    <span class="field-label">Backup</span>
+    <div class="seg" style="flex-wrap:wrap">
+      <button class="btn" data-action="export-data">⬆︎ Export backup</button>
+      <button class="btn" data-action="import-data">⬇︎ Import backup</button>
+      <button class="btn danger" data-action="erase-all">Erase all data</button>
+    </div>
+    <div class="modal-actions"><button class="btn" data-action="close-modal">Cancel</button><button class="btn primary" data-action="save-settings">Save</button></div>`);
+}
+
+// ---------- Actions ----------
+const actions = {
+  'home': () => go({screen:'home'}),
+  'settings': settingsModal,
+  'close-modal': closeModal,
+  'new-incident': b => newIncidentModal(b.dataset.type),
+  'create-incident': b => {
+    const type = b.dataset.type, ic = val('f-ic');
+    const i = {id:uid(), type, name:val('f-name'), ic, notes:val('f-notes'), startedAt:now(), closedAt:null, resources:[], log:[]};
+    addLog(i, `Incident started — ${ITYPES[type].label}${i.name ? ' at ' + i.name : ''}${ic ? '. IC: ' + ic : ''}`);
+    S.incidents.push(i);
+    if (ic) S.settings.icName = ic;
+    go({screen:'incident', id:i.id});
+  },
+  'open-incident': b => go({screen:'incident', id:b.dataset.id}),
+  'add': b => addModal(b.dataset.rtype),
+  'pick-type': b => {
+    mctx.rtype = b.dataset.rtype;
+    document.querySelectorAll('#type-chips .chip').forEach(c => c.classList.toggle('on', c === b));
+    const p = $('#f-pers');
+    if (p && !p.dataset.touched) p.value = RTYPES[mctx.rtype].pers;
+    renderSaved();
+  },
+  'fill-saved': b => {
+    const u = S.roster.find(x => x.unit === b.dataset.unit);
+    if (!u) return;
+    $('#f-unit').value = u.unit;
+    $('#f-agency').value = u.agency || '';
+    $('#f-pers').value = u.personnel ?? RTYPES[u.rtype].pers;
+    document.querySelectorAll('#saved-units .chip').forEach(c => c.classList.toggle('on', c === b));
+  },
+  'step': b => {
+    const inp = b.parentElement.querySelector('input');
+    inp.value = Math.max(0, (parseInt(inp.value) || 0) + +b.dataset.d);
+    inp.dataset.touched = 1;
+  },
+  'add-resource': b => {
+    const i = inc(), unit = val('f-unit');
+    if (!unit) { const f = $('#f-unit'); f.focus(); f.style.outline = '2px solid var(--red)'; toast('Enter a Unit ID or name'); return; }
+    const dup = i.resources.find(r => r.unit.toLowerCase() === unit.toLowerCase() && r.status !== 'left');
+    if (dup && !confirm(`${dup.unit} is already on this incident (${ST[dup.status].label}). Add it again anyway?`)) return;
+    const status = b.dataset.status, t = now();
+    const r = {id:uid(), rtype:mctx.rtype, unit, agency:val('f-agency'), personnel:Math.max(0, parseInt(val('f-pers')) || 0),
+               assignment:val('f-assign'), notes:val('f-notes'), status, statusAt:t, addedAt:t, history:[{status, at:t}]};
+    i.resources.push(r);
+    addLog(i, `${unit}${r.agency ? ' (' + r.agency + ')' : ''} added — ${ST[status].label}, ${r.personnel} personnel${r.assignment ? ', assigned ' + r.assignment : ''}`);
+    rememberUnit(r);
+    const another = $('#f-another').checked;
+    S.settings.addAnother = another;
+    save(); render();
+    toast(`${unit} added — ${ST[status].label}`);
+    if (another) {
+      ['f-unit', 'f-assign', 'f-notes'].forEach(id => $('#' + id).value = '');
+      const p = $('#f-pers'); p.value = RTYPES[mctx.rtype].pers; delete p.dataset.touched;
+      renderSaved();
+    } else closeModal();
+  },
+  'resource': b => { const r = findRes(b.dataset.id); if (r) resourceModal(r); },
+  'set-status': b => {
+    const i = inc(), r = findRes(b.dataset.id);
+    if (!r) return;
+    if (b.dataset.fromModal) { applyResourceFields(i, r); closeModal(); if (r.status === b.dataset.status) { save(); render(); return; } }
+    setStatus(i, r, b.dataset.status);
+  },
+  'save-resource': b => { const i = inc(), r = findRes(b.dataset.id); if (!r) return; applyResourceFields(i, r); save(); closeModal(); render(); },
+  'delete-resource': b => {
+    const i = inc(), r = findRes(b.dataset.id);
+    if (!r || !confirm(`Remove ${r.unit} from this incident entirely?\n\nUse "Left Scene" instead if the unit simply left — removing deletes its record.`)) return;
+    i.resources = i.resources.filter(x => x !== r);
+    addLog(i, `${r.unit} removed from incident (entered in error)`);
+    save(); closeModal(); render();
+  },
+  'undo': () => {
+    const u = undoState;
+    $('#toast').classList.remove('show');
+    if (!u) return;
+    const i = S.incidents.find(x => x.id === u.incId), r = i && i.resources.find(x => x.id === u.resId);
+    if (!r) return;
+    r.status = u.status; r.statusAt = u.statusAt; r.history.length = u.hist; i.log.length = u.log;
+    undoState = null; save(); render();
+  },
+  'note': noteModal,
+  'log': logModal,
+  'add-note': b => {
+    const text = val('f-note');
+    if (!text) return;
+    addLog(inc(), text, true); save();
+    if (b.dataset.keep) logModal(); else { closeModal(); toast('Note added to log'); }
+  },
+  'report': reportModal,
+  'share-report': () => { const i = inc(); navigator.share({title:(i.name || ITYPES[i.type].label) + ' — Incident Report', text:mctx.report}).catch(() => {}); },
+  'copy-report': async () => {
+    try { await navigator.clipboard.writeText(mctx.report); toast('Report copied'); }
+    catch (e) { toast('Copy failed — use Share instead'); }
+  },
+  'print-report': () => printReport(inc()),
+  'close-incident': () => {
+    const i = inc(), c = counts(i), still = c.enroute + c.staging + c.working;
+    if (!confirm(still ? `${still} resource(s) are not marked "Left Scene".\n\nClose the incident anyway?` : 'Close this incident?')) return;
+    i.closedAt = now();
+    addLog(i, 'Incident closed');
+    save(); render();
+    reportModal();
+  },
+  'reopen-incident': () => { const i = inc(); i.closedAt = null; addLog(i, 'Incident reopened'); save(); render(); },
+  'delete-incident': () => {
+    const i = inc();
+    if (!confirm(`Permanently delete "${i.name || ITYPES[i.type].label}" and its entire log? This cannot be undone.`)) return;
+    S.incidents = S.incidents.filter(x => x !== i);
+    go({screen:'home'});
+  },
+  'theme': b => {
+    S.settings.theme = b.dataset.v;
+    document.documentElement.dataset.theme = b.dataset.v;
+    b.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === b));
+    save();
+  },
+  'save-settings': () => {
+    Object.assign(S.settings, {icName:val('s-ic'), org:val('s-org'), rehabMin:Math.max(0, parseInt(val('s-rehab')) || 0)});
+    save(); closeModal(); render(); toast('Settings saved');
+  },
+  'del-roster': b => {
+    S.roster = S.roster.filter(u => u.unit !== b.dataset.unit);
+    save(); settingsModal();
+  },
+  'export-data': async () => {
+    const name = `ic-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    const blob = new Blob([JSON.stringify(S, null, 1)], {type:'application/json'});
+    const file = new File([blob], name, {type:'application/json'});
+    if (navigator.canShare && navigator.canShare({files:[file]})) {
+      try { await navigator.share({files:[file], title:'IC Tracker backup'}); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  },
+  'import-data': () => $('#import-file').click(),
+  'erase-all': () => {
+    if (!confirm('Erase ALL incidents, logs and saved units from this iPad?')) return;
+    if (!confirm('Are you sure? This cannot be undone. Export a backup first if you need one.')) return;
+    S = JSON.parse(JSON.stringify(DEFAULTS));
+    save(); go({screen:'home'});
+  },
+};
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-action]');
+  if (!b || !actions[b.dataset.action]) return;
+  e.preventDefault();
+  actions[b.dataset.action](b, e);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('#modal-root').innerHTML) closeModal();
+  if (e.key === 'Enter' && e.target.id === 'f-note' && e.target.tagName === 'INPUT') { e.preventDefault(); $('[data-action="add-note"]').click(); }
+});
+document.addEventListener('input', e => { if (e.target.id === 'f-pers') e.target.dataset.touched = 1; });
+
+$('#import-file').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const d = JSON.parse(rd.result);
+      if (!Array.isArray(d.incidents)) throw new Error('bad file');
+      const ids = new Set(S.incidents.map(i => i.id));
+      const newInc = d.incidents.filter(i => !ids.has(i.id));
+      S.incidents.push(...newInc);
+      (d.roster || []).forEach(u => { if (!S.roster.some(x => x.unit.toLowerCase() === u.unit.toLowerCase())) S.roster.push(u); });
+      save(); closeModal(); render();
+      toast(`Imported ${newInc.length} incident(s)`);
+    } catch (err) { toast('That file is not a valid IC Tracker backup'); }
+    e.target.value = '';
+  };
+  rd.readAsText(f);
+});
+
+// Offline support when served from a web address
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+render();
+})();
+</script>
+</body>
+</html>
