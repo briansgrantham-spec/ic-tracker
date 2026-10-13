@@ -11,195 +11,275 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
+<script>window.IC_PWA = true;</script>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+</head>
+<body>
 <title>IC Resource Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
 <style>
-:root{--bg:#0e1116;--panel:#171c23;--panel2:#212833;--text:#eef2f6;--muted:#93a0ad;--border:#2c3541;--amber:#f59e0b;--blue:#3b82f6;--green:#22c55e;--gray:#6b7280;--red:#ef4444;}
-[data-theme=light]{--bg:#e9edf2;--panel:#fff;--panel2:#f3f5f8;--text:#0f172a;--muted:#4b5563;--border:#c9d1dc;--amber:#d97706;--blue:#2563eb;--green:#15803d;--gray:#6b7280;--red:#dc2626;}
+/* Layout: sticky command bar, PAR banner, status summary tiles, then a four-column status board (stacks to one column on phones). */
+:root{
+  --bg:#e8ecf1;--panel:#ffffff;--panel2:#f2f4f7;--text:#121820;--muted:#4c5664;--border:#c7cfd9;
+  --amber:#d97706;--blue:#2563eb;--green:#15803d;--gray:#6b7280;--red:#dc2626;--purple:#7c3aed;
+  --scrim:rgba(15,20,28,.55);--toast-bg:#121820;--toast-fg:#ffffff;--toast-btn:#3a4452;--note-bg:rgba(37,99,235,.10);--due-bg:rgba(220,38,38,.10);
+  --font-display:"Barlow Condensed","Arial Narrow",-apple-system,sans-serif;
+  --font-body:"Barlow",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --font-mono:ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1116;--panel:#171c23;--panel2:#212833;--text:#eef2f6;--muted:#95a1ae;--border:#2c3541;
+  --amber:#f59e0b;--blue:#3b82f6;--green:#22c55e;--gray:#6b7280;--red:#ef4444;--purple:#a78bfa;
+  --scrim:rgba(0,0,0,.6);--toast-bg:#eef2f6;--toast-fg:#0e1116;--toast-btn:#c7cfd9;--note-bg:rgba(59,130,246,.16);--due-bg:rgba(239,68,68,.16);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1116;--panel:#171c23;--panel2:#212833;--text:#eef2f6;--muted:#95a1ae;--border:#2c3541;
+  --amber:#f59e0b;--blue:#3b82f6;--green:#22c55e;--gray:#6b7280;--red:#ef4444;--purple:#a78bfa;
+  --scrim:rgba(0,0,0,.6);--toast-bg:#eef2f6;--toast-fg:#0e1116;--toast-btn:#c7cfd9;--note-bg:rgba(59,130,246,.16);--due-bg:rgba(239,68,68,.16);color-scheme:dark}
+/* In-app display override (Settings) wins over the device theme */
+:root.app-dark{
+  --bg:#0e1116;--panel:#171c23;--panel2:#212833;--text:#eef2f6;--muted:#95a1ae;--border:#2c3541;
+  --amber:#f59e0b;--blue:#3b82f6;--green:#22c55e;--gray:#6b7280;--red:#ef4444;--purple:#a78bfa;
+  --scrim:rgba(0,0,0,.6);--toast-bg:#eef2f6;--toast-fg:#0e1116;--toast-btn:#c7cfd9;--note-bg:rgba(59,130,246,.16);--due-bg:rgba(239,68,68,.16);color-scheme:dark}
+:root.app-light{
+  --bg:#e8ecf1;--panel:#ffffff;--panel2:#f2f4f7;--text:#121820;--muted:#4c5664;--border:#c7cfd9;
+  --amber:#d97706;--blue:#2563eb;--green:#15803d;--gray:#6b7280;--red:#dc2626;--purple:#7c3aed;
+  --scrim:rgba(15,20,28,.55);--toast-bg:#121820;--toast-fg:#ffffff;--toast-btn:#3a4452;--note-bg:rgba(37,99,235,.10);--due-bg:rgba(220,38,38,.10);color-scheme:light}
+
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
-body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+html,body{background:var(--bg);color:var(--text)}
+body{margin:0;font:16px/1.35 var(--font-body);-webkit-text-size-adjust:100%;padding-inline:env(safe-area-inset-left,0px) env(safe-area-inset-right,0px)}
 button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;border:0;background:none}
-input,textarea,select{font:inherit;font-size:17px;color:var(--text);background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:11px 12px;width:100%;margin-top:4px}
+button:focus-visible,.card-main:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+input,textarea{font:inherit;font-size:17px;color:var(--text);background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:11px 12px;width:100%;margin-top:4px}
 input:focus,textarea:focus{outline:2px solid var(--blue);outline-offset:0}
-h2.section{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:26px 0 10px}
+h2.section{font:700 15px var(--font-display);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:26px 0 10px}
 .muted{color:var(--muted)}
 .btn{min-height:46px;padding:0 16px;border-radius:10px;background:var(--panel2);border:1px solid var(--border);font-weight:600;white-space:nowrap}
 .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
 .btn.danger{background:transparent;border-color:var(--red);color:var(--red)}
+.btn.danger-fill{background:var(--red);border-color:var(--red);color:#fff}
 .btn.ghost{background:transparent}
-.btn:active,.qa:active,.sbtn:active,.mini:active,.type-tile:active,.inc-row:active,.card-main:active{transform:scale(.97)}
+@media (prefers-reduced-motion:no-preference){
+  .btn:active,.qa:active,.sbtn:active,.mini:active,.type-tile:active,.inc-row:active,.card-main:active,.dept:active,.chip:active{transform:scale(.97)}
+}
 
-/* Top bar */
-.topbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--border)}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--border);flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
-.logo{width:42px;height:42px;border-radius:10px;background:var(--red);color:#fff;font-weight:800;display:grid;place-items:center;font-size:18px;flex:none}
-.title{font-size:20px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logo{width:42px;height:42px;border-radius:10px;background:var(--red);color:#fff;font:800 20px var(--font-display);display:grid;place-items:center;flex:none}
+.title{font:700 24px/1.1 var(--font-display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sub{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .clock{text-align:right;flex:none}
-.clock .big{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.clock .big{font:700 30px/1 var(--font-display);font-variant-numeric:tabular-nums}
 .clock .small{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .top-actions{display:flex;gap:8px;flex-wrap:wrap}
 
-/* Home */
 .home{padding:8px 16px 40px;max-width:1100px;margin:0 auto}
-.type-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
-.type-tile{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:26px 14px;display:flex;flex-direction:column;align-items:center;gap:10px}
-.ti-icon{font-size:52px;line-height:1}
-.ti-label{font-size:20px;font-weight:700}
+.type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.type-tile{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px 12px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.ti-icon{font-size:46px;line-height:1}
+.ti-label{font:700 22px var(--font-display);text-align:center}
 .inc-list{display:flex;flex-direction:column;gap:10px}
-.inc-row{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px 16px;text-align:left;width:100%}
-.inc-row.closed{opacity:.7}
+.inc-row{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px 16px;text-align:left;width:100%;flex-wrap:wrap}
+.inc-row.closed{opacity:.72}
 .ir-icon{font-size:32px}
 .ir-main{flex:1;min-width:0;display:flex;flex-direction:column}
-.ir-title{font-size:18px;font-weight:700}
+.ir-title{font:700 21px var(--font-display)}
 .ir-sub{font-size:14px;color:var(--muted)}
 .ir-counts{display:flex;gap:6px}
-.pill{min-width:34px;height:30px;padding:0 8px;border-radius:15px;background:var(--c);color:var(--fg,#fff);display:inline-grid;place-items:center;font-weight:700;font-size:15px}
-.install-tip{margin-top:28px;padding:14px 16px;border:1px dashed var(--border);border-radius:12px;color:var(--muted);font-size:15px}
+.pill{min-width:34px;height:30px;padding:0 8px;border-radius:15px;background:var(--c);color:var(--fg,#fff);display:inline-grid;place-items:center;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
+.note-box{margin-top:28px;padding:14px 16px;border:1px dashed var(--border);border-radius:12px;color:var(--muted);font-size:15px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.note-box span{flex:1;min-width:220px}
 
-/* Incident */
 .closed-banner{margin:12px 16px 0;padding:12px 16px;border-radius:12px;background:var(--panel2);border:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .closed-banner b{flex:1}
-.summary{display:flex;gap:10px;padding:12px 16px 0;flex-wrap:wrap}
-.sum{flex:1;min-width:120px;background:var(--panel);border:1px solid var(--border);border-top:5px solid var(--c);border-radius:12px;padding:8px 12px}
-.sum .n{font-size:30px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
-.sum .l{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.par-banner{margin:12px 16px 0;padding:10px 12px 10px 16px;border-radius:12px;background:var(--due-bg);border:2px solid var(--red);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.par-banner .pb-text{flex:1;min-width:200px}
+.par-banner .pb-title{font:800 20px var(--font-display);color:var(--red);letter-spacing:.03em}
+.par-banner .btn{background:var(--red);border-color:var(--red);color:#fff}
+.summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:12px 16px 0}
+.sum{background:var(--panel);border:1px solid var(--border);border-top:5px solid var(--c);border-radius:12px;padding:8px 12px}
+.sum .n{font:800 34px/1.05 var(--font-display);font-variant-numeric:tabular-nums}
+.sum .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .quickadd{display:flex;gap:8px;padding:12px 16px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .quickadd::-webkit-scrollbar{display:none}
 .qa{flex:none;min-height:48px;padding:0 16px;border-radius:24px;background:var(--panel);border:1px solid var(--border);font-weight:600;white-space:nowrap}
 .qa.more{border-style:dashed}
+.qa.eoc{border:2px solid var(--red);font-weight:800}
 .board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:14px 16px 40px;align-items:start}
-.col{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-height:120px}
-.col-head{background:var(--c);color:var(--fg,#fff);padding:10px 12px;font-weight:800;display:flex;justify-content:space-between;align-items:center;font-size:16px}
-.col-head .cnt{background:rgba(0,0,0,.22);border-radius:12px;padding:1px 10px}
+.col{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-height:120px;min-width:0}
+.col-head{background:var(--c);color:var(--fg,#fff);padding:10px 12px;font:800 18px var(--font-display);letter-spacing:.02em;display:flex;justify-content:space-between;align-items:center}
+.col-head .cnt{background:rgba(0,0,0,.22);border-radius:12px;padding:0 10px;font-variant-numeric:tabular-nums}
 .col-body{padding:8px;display:flex;flex-direction:column;gap:8px}
 .empty{color:var(--muted);text-align:center;padding:18px 6px;font-size:14px}
 .card{background:var(--panel2);border:1px solid var(--border);border-left:6px solid var(--c);border-radius:10px}
 .card.left-scene{opacity:.65}
-.card.overdue{border-color:var(--red);box-shadow:0 0 0 2px var(--red);animation:pulse 1.6s infinite}
-@keyframes pulse{50%{box-shadow:0 0 0 4px var(--red)}}
+.card.par-due{border-color:var(--red);box-shadow:0 0 0 2px var(--red)}
+@media (prefers-reduced-motion:no-preference){.card.par-due{animation:pulse 1.6s infinite}}
+@keyframes pulse{50%{box-shadow:0 0 0 5px var(--red)}}
 .card-main{display:block;width:100%;text-align:left;padding:10px 10px 6px}
 .card-top{display:flex;align-items:center;gap:8px}
-.abbr{font-size:12px;font-weight:800;background:var(--border);border-radius:6px;padding:2px 6px;flex:none}
-.unit{font-size:18px;font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.abbr{font:800 13px var(--font-display);letter-spacing:.04em;background:var(--border);border-radius:6px;padding:2px 6px;flex:none}
+.ma{font:800 12px var(--font-display);letter-spacing:.05em;background:var(--purple);color:#fff;border-radius:6px;padding:2px 6px;flex:none}
+.unit{font:800 21px/1.15 var(--font-display);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pers{font-size:14px;font-weight:700;flex:none}
 .card-sub{font-size:13px;color:var(--muted);margin-top:2px}
 .assign{font-size:14px;font-weight:600;margin-top:4px}
 .card-time{font-size:13px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
 .card-time b{color:var(--text)}
-.card.overdue .card-time b{color:var(--red)}
+.par-line{font-size:13px;margin-top:3px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.card.par-due .par-line{color:var(--red)}
 .card-actions{display:flex;gap:6px;padding:0 8px 8px}
 .mini{flex:1;min-height:40px;border-radius:8px;background:var(--c);color:var(--fg,#fff);font-weight:700;font-size:14px;padding:0 4px}
+.mini.par-btn{background:var(--red);color:#fff;flex:1.3}
 
-/* Modal */
-#modal-root:empty{display:none}
-.backdrop{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding:calc(env(safe-area-inset-top) + 24px) 12px 24px;overflow-y:auto}
-.modal{background:var(--panel);border:1px solid var(--border);border-radius:16px;width:100%;max-width:640px;padding:18px 20px 20px}
-.modal h3{margin:0 0 4px;font-size:22px;display:flex;align-items:center;gap:8px}
+#modal-root:empty,#confirm-root:empty{display:none}
+.backdrop{position:fixed;inset:0;z-index:20;background:var(--scrim);display:flex;align-items:flex-start;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 24px) 16px 24px;overflow-y:auto}
+#confirm-root .backdrop{z-index:40;align-items:center}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:16px;width:100%;max-width:720px;padding:18px 20px 20px;min-width:0}
+.modal.small{max-width:460px}
+.modal.small p{font-size:17px;margin:0;line-height:1.45}
+.modal h3{margin:0 0 4px;font:700 26px var(--font-display);display:flex;align-items:center;gap:8px}
 .modal label,.field{display:block;margin-top:14px;font-size:14px;font-weight:600;color:var(--muted)}
 .field-label{display:block;margin-top:16px;font-size:14px;font-weight:600;color:var(--muted)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
-.modal-actions{display:flex;gap:10px;margin-top:20px;align-items:center}
+.modal-actions{display:flex;gap:10px;margin-top:20px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
 .modal-actions .spacer{flex:1}
-.modal-actions:not(:has(.spacer)){justify-content:flex-end}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
-.chip{min-height:42px;padding:0 14px;border-radius:21px;background:var(--panel2);border:1px solid var(--border);font-weight:600;font-size:15px}
+.chips.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips.scroll::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:42px;padding:0 14px;border-radius:21px;background:var(--panel2);border:1px solid var(--border);font-weight:600;font-size:15px}
 .chip.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.chip.st.on{background:var(--c);border-color:var(--c);color:var(--fg)}
 .chip.saved{border-style:dashed}
+.dept-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px;margin-top:6px}
+.dept{min-height:62px;border-radius:12px;background:var(--panel2);border:1px solid var(--border);border-left:6px solid var(--c,var(--border));text-align:left;padding:7px 10px;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.dept .dn{font:700 19px/1.1 var(--font-display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dept .ds{font-size:12px;color:var(--muted);font-weight:600;min-height:15px}
+.dept.ma-dept{border-left-color:var(--purple)}
+.dept.ma-dept[style]{border-left-color:var(--c)}
+details.custom{margin-top:16px;border:1px solid var(--border);border-radius:12px;padding:0 12px}
+details.custom summary{min-height:48px;display:flex;align-items:center;font-weight:700;cursor:pointer}
+details.custom[open]{padding-bottom:12px}
 .status-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px}
 .status-btns.four{grid-template-columns:repeat(4,1fr)}
-.sbtn{min-height:64px;border-radius:12px;background:var(--c);color:var(--fg,#fff);font-weight:800;font-size:16px;padding:6px;line-height:1.2}
+.sbtn{min-height:64px;border-radius:12px;background:var(--c);color:var(--fg,#fff);font:800 18px/1.15 var(--font-display);padding:6px}
 .sbtn.current{outline:4px solid var(--text);outline-offset:2px}
 .stepper{display:flex;gap:6px;margin-top:4px}
 .stepper button{width:52px;flex:none;border-radius:10px;background:var(--panel2);border:1px solid var(--border);font-size:24px;font-weight:700}
 .stepper input{margin:0;text-align:center;font-weight:700}
 .check{display:flex!important;align-items:center;gap:10px;color:var(--text)!important}
-.check input{width:24px;height:24px;margin:0}
+.check input{width:24px;height:24px;margin:0;flex:none}
 .timeline{list-style:none;margin:6px 0 0;padding:0;font-size:15px}
-.timeline li{padding:6px 0;border-bottom:1px solid var(--border)}
+.timeline li{padding:6px 0;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums}
 .loglist{list-style:none;margin:10px 0 0;padding:0;max-height:55vh;overflow-y:auto}
-.loglist li{padding:8px 2px;border-bottom:1px solid var(--border);display:flex;gap:12px;font-size:15px}
+.loglist li{padding:8px 4px;border-bottom:1px solid var(--border);display:flex;gap:12px;font-size:15px}
 .loglist li .t{font-weight:700;font-variant-numeric:tabular-nums;flex:none}
-.loglist li.note{background:rgba(59,130,246,.12)}
-.report{white-space:pre-wrap;font:14px/1.45 ui-monospace,Menlo,monospace;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px;max-height:50vh;overflow:auto;margin-top:10px}
+.loglist li.note{background:var(--note-bg)}
+.report{white-space:pre-wrap;font:13px/1.45 var(--font-mono);background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px;max-height:50vh;overflow:auto;margin-top:10px;width:100%;min-height:200px;color:var(--text)}
 .roster{list-style:none;padding:0;margin:6px 0 0;max-height:240px;overflow-y:auto}
 .roster li{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)}
-.roster li span{flex:1}
+.roster li span{flex:1;min-width:0}
 .roster li button{color:var(--red);font-weight:700;min-height:36px;padding:0 10px}
-.seg{display:flex;gap:8px;margin-top:6px}
+.seg{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
 
-/* Toast */
-#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 20px);transform:translateX(-50%) translateY(150%);transition:transform .25s;z-index:30;background:#111827;color:#fff;border-radius:12px;padding:10px 12px 10px 16px;display:flex;align-items:center;gap:14px;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:92vw;font-weight:600}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);transform:translateX(-50%) translateY(200%);transition:transform .25s;z-index:30;background:var(--toast-bg);color:var(--toast-fg);border-radius:12px;padding:10px 12px 10px 16px;display:flex;align-items:center;gap:14px;box-shadow:0 8px 24px rgba(0,0,0,.35);max-width:calc(100vw - 32px);font-weight:600}
 #toast.show{transform:translateX(-50%) translateY(0)}
-#toast button{background:#374151;color:#fff;border-radius:8px;min-height:38px;padding:0 14px;font-weight:700}
+#toast button{background:var(--toast-btn);color:var(--toast-bg);border-radius:8px;min-height:38px;padding:0 14px;font-weight:700}
 
-#print{display:none}
+@media (max-width:900px){.summary{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:760px){
   .board{grid-template-columns:1fr}
   .grid2{grid-template-columns:1fr}
   .status-btns.four{grid-template-columns:repeat(2,1fr)}
   .top-actions .lbl{display:none}
-}
-@media print{
-  #app,#modal-root,#toast{display:none!important}
-  #print{display:block;color:#000;font:12px/1.4 -apple-system,sans-serif}
-  #print h1{font-size:18px;margin:0 0 4px}
-  #print table{width:100%;border-collapse:collapse;margin:8px 0 16px}
-  #print th,#print td{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top}
-  #print th{background:#eee}
+  .summary{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 </style>
-</head>
-<body>
+
 <div id="app"></div>
 <div id="modal-root"></div>
-<div id="toast"></div>
-<div id="print"></div>
-<input type="file" id="import-file" accept=".json,application/json" hidden>
+<div id="confirm-root"></div>
+<div id="toast" role="status"></div>
+<input type="file" id="import-file" accept=".json,.txt,application/json,text/plain" hidden>
+
 <script>
 (function(){
 'use strict';
 
-// ---------- Configuration ----------
+// ---------- County configuration ----------
+// Each home department has these four apparatus, named "<Dept> <Type>" (e.g. "Puckett Engine").
+const HOME_DEPTS = ['Cleary','Evergreen','Florence','Lake Harbor','Langford','Leesburg','Monterey','Pelahatchie','Puckett','Reservoir','Robinhood','Shell Rd','Southwest','Star','Walters'];
+const DEPT_TYPES = ['engine','brush','tanker','rescue'];
+// EOC is tracked by individual staff member plus its own equipment.
+// Equipment carries 0 personnel so staff aren't counted twice.
+const EOC = {
+  name:'EOC',
+  staff:['B Ishee','H Squires','J Allen','L Cooper'],
+  equip:[{unit:'EOC Drone', rtype:'drone'}, {unit:'EOC Fire Box', rtype:'firebox'}, {unit:'EOC G3 Boat', rtype:'boat'}],
+};
+const EQUIP_TYPES = ['drone','firebox','boat'];
+const MUTUAL = [
+  {name:'Scott County Equip',   short:'Scott County'},
+  {name:'Simpson County Equip', short:'Simpson County'},
+  {name:'Smith County Equip',   short:'Smith County'},
+];
+
 const STATUSES = [
-  {key:'enroute', label:'En Route',            short:'En Route', color:'var(--amber)', fg:'#1a1200'},
-  {key:'staging', label:'On Scene – Staging',  short:'Staging',  color:'var(--blue)',  fg:'#fff'},
-  {key:'working', label:'On Scene – Working',  short:'Working',  color:'var(--green)', fg:'#fff'},
-  {key:'left',    label:'Left Scene',          short:'Left',     color:'var(--gray)',  fg:'#fff'},
+  {key:'enroute', label:'En Route',           short:'En Route', color:'var(--amber)', fg:'#1a1200'},
+  {key:'staging', label:'On Scene – Staging', short:'Staging',  color:'var(--blue)',  fg:'#fff'},
+  {key:'working', label:'On Scene – Working', short:'Working',  color:'var(--green)', fg:'#fff'},
+  {key:'left',    label:'Left Scene',         short:'Left',     color:'var(--gray)',  fg:'#fff'},
 ];
 const ST = Object.fromEntries(STATUSES.map(s => [s.key, s]));
 const ON_SCENE = ['staging', 'working'];
 
-// pers = default personnel when adding that type
+// short = word used in auto-generated unit names; pers = default personnel
 const RTYPES = {
-  engine:   {label:'Engine',             abbr:'E',   pers:3},
-  tanker:   {label:'Tanker',             abbr:'T',   pers:1},
-  brush:    {label:'Brush Truck',        abbr:'BR',  pers:2},
-  ladder:   {label:'Ladder / Truck',     abbr:'L',   pers:3},
-  rescue:   {label:'Rescue',             abbr:'R',   pers:2},
-  ambulance:{label:'Ambulance',          abbr:'A',   pers:2},
-  command:  {label:'Chief / Command',    abbr:'C',   pers:1},
-  pov:      {label:'POV Volunteer',      abbr:'POV', pers:1},
-  law:      {label:'Law Enforcement',    abbr:'LE',  pers:1},
-  dozer:    {label:'Dozer / Forestry',   abbr:'DZ',  pers:1},
-  air:      {label:'Air / Helicopter',   abbr:'AIR', pers:2},
-  hazmat:   {label:'Hazmat',             abbr:'HM',  pers:2},
-  utility:  {label:'Utility / Public Works', abbr:'U', pers:1},
-  other:    {label:'Other',              abbr:'O',   pers:1},
+  engine:   {label:'Engine',             short:'Engine',    abbr:'E',   pers:3},
+  brush:    {label:'Brush Truck',        short:'Brush',     abbr:'BR',  pers:2},
+  tanker:   {label:'Tanker',             short:'Tanker',    abbr:'T',   pers:1},
+  rescue:   {label:'Rescue',             short:'Rescue',    abbr:'R',   pers:2},
+  ladder:   {label:'Ladder / Truck',     short:'Ladder',    abbr:'L',   pers:3},
+  ambulance:{label:'Ambulance',          short:'Ambulance', abbr:'A',   pers:2},
+  command:  {label:'Chief / Command',    short:'Command',   abbr:'C',   pers:1},
+  pov:      {label:'POV Volunteer',      short:'POV',       abbr:'POV', pers:1},
+  law:      {label:'Law Enforcement',    short:'LE',        abbr:'LE',  pers:1},
+  dozer:    {label:'Dozer / Forestry',   short:'Dozer',     abbr:'DZ',  pers:1},
+  air:      {label:'Air / Helicopter',   short:'Air',       abbr:'AIR', pers:2},
+  hazmat:   {label:'Hazmat',             short:'HazMat',    abbr:'HM',  pers:2},
+  utility:  {label:'Utility / Public Works', short:'Utility', abbr:'U', pers:1},
+  drone:    {label:'Drone',              short:'Drone',     abbr:'UAS', pers:0},
+  boat:     {label:'Boat',               short:'Boat',      abbr:'BOAT',pers:0},
+  firebox:  {label:'Fire Box',           short:'Fire Box',  abbr:'FB',  pers:0, hidden:true},
+  eocstaff: {label:'EOC Staff',          short:'EOC',       abbr:'EOC', pers:1, hidden:true},
+  other:    {label:'Other',              short:'Unit',      abbr:'O',   pers:1},
 };
 
+const COMMON_NOTES = ['PAR complete','Command established','Command transferred','Incident under control','Utilities secured','All units released'];
 const ITYPES = {
-  structure:{label:'Structure Fire', icon:'🏠', quick:['engine','tanker','ladder','rescue','ambulance','command','pov','law','utility'],
-    assign:['Fire Attack','Backup Line','Water Supply','Search','Ventilation','RIT','Exposure Protection','Rehab','Medical','Overhaul','Div A','Div B','Div C','Div D']},
-  wildland: {label:'Wildland Fire',  icon:'🌲', quick:['brush','tanker','engine','dozer','pov','command','air','law','ambulance'],
-    assign:['Head','Left Flank','Right Flank','Div A','Div Z','Structure Protection','Water Supply','Mop-up','Line Construction','Rehab','Medical']},
+  structure:{label:'Structure Fire', icon:'🏠', quick:['engine','tanker','rescue','brush','ladder','ambulance','command','pov','law','utility'],
+    assign:['Fire Attack','Backup Line','Water Supply','Search','Ventilation','RIT','Exposure Protection','Rehab','Medical','Overhaul','Div A','Div B','Div C','Div D'],
+    notes:['Primary search all clear','Secondary search all clear','Fire knocked down','Loss stop','Overhaul complete']},
+  wildland: {label:'Wildland Fire', icon:'🌲', quick:['brush','tanker','engine','dozer','pov','command','air','law','ambulance','rescue'],
+    assign:['Head','Left Flank','Right Flank','Div A','Div Z','Structure Protection','Water Supply','Mop-up','Line Construction','Rehab','Medical'],
+    notes:['Forward progress stopped','Fire contained','Mop-up underway','Structures threatened','Forestry Commission notified']},
   mvc:      {label:'Vehicle Collision', icon:'🚗', quick:['engine','rescue','ambulance','law','command','pov','utility','air'],
-    assign:['Extrication','Patient Care','Fire Suppression','Traffic Control','Landing Zone','Hazard Control','Transport']},
-  other:    {label:'Other Incident', icon:'⚠️', quick:['engine','rescue','ambulance','law','command','pov','hazmat','utility'],
-    assign:['Operations','Staging','Medical','Traffic Control','Rehab']},
+    assign:['Extrication','Patient Care','Fire Suppression','Traffic Control','Landing Zone','Hazard Control','Transport'],
+    notes:['Scene secure','Extrication complete','Patient(s) transported','Air medical requested','Fluids contained','Roadway reopened']},
+  hazmat:   {label:'Haz Mat', icon:'☣️', quick:['hazmat','engine','rescue','ambulance','law','command','utility','pov'],
+    assign:['Entry Team','Backup Team','Decon','Hot Zone','Warm Zone','Cold Zone','Isolation / Perimeter','Evacuation','Medical','Rehab'],
+    notes:['Product identified','Hot zone established','Decon set up','Evacuation ordered','Shelter in place ordered','MDEQ notified']},
+  sar:      {label:'Search & Rescue', icon:'🔦', quick:['rescue','pov','brush','law','air','ambulance','command','engine'],
+    assign:['Search Area 1','Search Area 2','Search Area 3','Search Area 4','Hasty Team','Grid Team','Water Search','Base / ICP','Medical','Transport'],
+    notes:['Last known point established','Search areas assigned','Subject located','Subject recovered','Search suspended']},
+  weather:  {label:'Severe Weather', icon:'⛈️', quick:['rescue','engine','brush','utility','law','ambulance','pov','command'],
+    assign:['Road Clearing','Damage Assessment','Search & Rescue','Shelter','Traffic Control','Medical','Utilities','Debris'],
+    notes:['Damage assessment started','Road blocked','Power lines down','Shelter opened','Roads cleared']},
+  other:    {label:'Other Incident', icon:'⚠️', quick:['engine','rescue','brush','tanker','ambulance','law','command','pov','utility'],
+    assign:['Operations','Staging','Medical','Traffic Control','Rehab'], notes:[]},
 };
 
-// Quick buttons shown on each card per current status
 const QUICK = {enroute:['staging','working'], staging:['working','left'], working:['staging','left'], left:['staging']};
 
 // ---------- Helpers ----------
@@ -217,52 +297,93 @@ function fmtDur(ms, withSecs){
 }
 const stStyle = k => `--c:${ST[k].color};--fg:${ST[k].fg}`;
 const rt = r => RTYPES[r.rtype] || RTYPES.other;
+const itype = i => ITYPES[i.type] || ITYPES.other;
 
-// ---------- Storage ----------
+// ---------- Storage (this browser / app only) ----------
 const KEY = 'icTracker.v1';
-const DEFAULTS = {incidents:[], roster:[], view:{screen:'home'}, settings:{icName:'', org:'', theme:'dark', rehabMin:45, addAnother:false}};
+const DEFAULT_SETTINGS = {icName:'', org:'', theme:'auto', parMin:20, parSound:true, addStatus:'enroute'};
+const DEFAULTS = {incidents:[], roster:[], view:{screen:'home'}, settings:DEFAULT_SETTINGS};
+let storageOK = true;
 let S = load();
 function load(){
   try {
     const d = JSON.parse(localStorage.getItem(KEY));
-    if (d && Array.isArray(d.incidents)) return {...DEFAULTS, ...d, settings:{...DEFAULTS.settings, ...d.settings}};
-  } catch (e) {}
+    if (d && Array.isArray(d.incidents)) return {...DEFAULTS, ...d, settings:{...DEFAULT_SETTINGS, ...d.settings}};
+  } catch (e) { storageOK = false; }
   return JSON.parse(JSON.stringify(DEFAULTS));
 }
 function save(){
-  try { localStorage.setItem(KEY, JSON.stringify(S)); }
-  catch (e) { toast('⚠️ Could not save — storage full or unavailable'); }
+  try { localStorage.setItem(KEY, JSON.stringify(S)); storageOK = true; }
+  catch (e) { storageOK = false; toast('Not saved: storage is blocked. Use Settings → Backup to copy your data.'); }
 }
-if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch (e) {}
 
 let view = S.view || {screen:'home'};
 const inc = () => S.incidents.find(i => i.id === view.id);
 const findRes = id => { const i = inc(); return i && i.resources.find(r => r.id === id); };
 function go(v){ view = v; S.view = v; save(); closeModal(); render(); window.scrollTo(0, 0); }
-
 function addLog(i, text, isNote){ i.log.push({at:now(), text, note:!!isNote}); }
 
 function counts(i){
-  const c = {enroute:0, staging:0, working:0, left:0, personnel:0, totalPers:0};
+  const c = {enroute:0, staging:0, working:0, left:0, personnel:0, totalPers:0, ma:0};
   i.resources.forEach(r => {
     c[r.status]++;
     c.totalPers += +r.personnel || 0;
+    if (r.ma) c.ma++;
     if (ON_SCENE.includes(r.status)) c.personnel += +r.personnel || 0;
   });
   return c;
 }
 function times(r){
   const arr = r.history.find(h => ON_SCENE.includes(h.status));
-  const left = r.status === 'left' ? r.statusAt : null;
-  return {arrived: arr && arr.at, left};
+  return {arrived: arr && arr.at, left: r.status === 'left' ? r.statusAt : null};
+}
+
+// ---------- PAR ----------
+const parMs = () => (+S.settings.parMin || 0) * 60000;
+const parBase = r => r.parAt || r.statusAt;
+const hasCrew = r => (+r.personnel || 0) > 0;
+const isDue = (i, r, t) => parMs() > 0 && !i.closedAt && r.status === 'working' && hasCrew(r) && (t || now()) - parBase(r) >= parMs();
+const dueList = (i, t) => i.resources.filter(r => isDue(i, r, t));
+let lastDueKey = '', lastDueInc = null;
+
+let actx = null;
+function unlockAudio(){
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+  } catch (e) {}
+}
+function beep(){
+  if (!S.settings.parSound || !actx) return;
+  try {
+    [0, 0.35].forEach(off => {
+      const o = actx.createOscillator(), g = actx.createGain(), t0 = actx.currentTime + off;
+      o.frequency.value = 880; o.connect(g); g.connect(actx.destination);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.28);
+      o.start(t0); o.stop(t0 + 0.3);
+    });
+  } catch (e) {}
+}
+
+function applyTheme(){
+  const el = document.documentElement;
+  el.classList.toggle('app-dark', S.settings.theme === 'dark');
+  el.classList.toggle('app-light', S.settings.theme === 'light');
 }
 
 // ---------- Rendering ----------
 function render(){
-  document.documentElement.dataset.theme = S.settings.theme;
+  applyTheme();
   const app = $('#app');
-  if (view.screen === 'incident' && inc()) app.innerHTML = incidentHTML(inc());
-  else { view = {screen:'home'}; app.innerHTML = homeHTML(); }
+  if (view.screen === 'incident' && inc()) {
+    const i = inc();
+    lastDueKey = dueList(i).map(r => r.id).join(',');
+    lastDueInc = i.id;
+    app.innerHTML = incidentHTML(i);
+  } else { view = {screen:'home'}; lastDueInc = null; app.innerHTML = homeHTML(); }
   tick();
   wakeLock(view.screen === 'incident');
 }
@@ -270,11 +391,10 @@ function render(){
 function homeHTML(){
   const active = S.incidents.filter(i => !i.closedAt).sort((a, b) => b.startedAt - a.startedAt);
   const closed = S.incidents.filter(i => i.closedAt).sort((a, b) => b.startedAt - a.startedAt);
-  const standalone = window.navigator.standalone || matchMedia('(display-mode: standalone)').matches;
   return `
   <header class="topbar">
     <div class="brand"><span class="logo">IC</span>
-      <div style="min-width:0"><div class="title">Incident Resource Tracker</div><div class="sub">${esc(S.settings.org || 'Tap a type below to start an incident')}</div></div>
+      <div style="min-width:0"><div class="title">Incident Resource Tracker</div><div class="sub">${esc(S.settings.org || 'Choose the incident type to start')}</div></div>
     </div>
     <div class="clock"><div class="big" data-clock></div><div class="small">Local time</div></div>
     <button class="btn ghost" data-action="settings">⚙︎ Settings</button>
@@ -289,12 +409,15 @@ function homeHTML(){
     </div>
     ${active.length ? `<h2 class="section">Active incidents</h2><div class="inc-list">${active.map(incRow).join('')}</div>` : ''}
     ${closed.length ? `<h2 class="section">Closed incidents</h2><div class="inc-list">${closed.map(incRow).join('')}</div>` : ''}
-    ${standalone ? '' : `<div class="install-tip">📲 <b>To install on iPad:</b> tap the Share button in Safari → <b>Add to Home Screen</b>. It will then open full-screen and work without internet.</div>`}
+    <div class="note-box">
+      <span>${storageOK ? 'Incidents are saved on this device only.' : 'Storage is blocked here, so incidents will be lost when you close the page.'} Use Settings → Backup to keep a copy.</span>
+      ${S.incidents.length ? '' : '<button class="btn" data-action="sample">Open a sample incident</button>'}
+    </div>
   </main>`;
 }
 
 function incRow(i){
-  const c = counts(i), t = ITYPES[i.type];
+  const c = counts(i), t = itype(i);
   return `
   <button class="inc-row ${i.closedAt ? 'closed' : ''}" data-action="open-incident" data-id="${i.id}">
     <span class="ir-icon">${t.icon}</span>
@@ -307,7 +430,7 @@ function incRow(i){
 }
 
 function incidentHTML(i){
-  const c = counts(i), t = ITYPES[i.type];
+  const c = counts(i), t = itype(i), due = dueList(i);
   return `
   <header class="topbar">
     <button class="btn ghost" data-action="home" aria-label="All incidents">‹ <span class="lbl">Incidents</span></button>
@@ -329,11 +452,15 @@ function incidentHTML(i){
   ${i.closedAt ? `<div class="closed-banner"><b>Incident closed at ${fmtTime(i.closedAt)}, ${fmtDate(i.closedAt)}</b>
     <button class="btn" data-action="reopen-incident">Reopen</button>
     <button class="btn danger" data-action="delete-incident">Delete</button></div>` : ''}
+  ${due.length ? `<div class="par-banner" role="alert">
+    <div class="pb-text"><div class="pb-title">PAR DUE (${due.length})</div><div>${due.map(r => esc(r.unit) + ' · ' + (+r.personnel || 0)).join(' &nbsp;|&nbsp; ')}</div></div>
+    <button class="btn" data-action="par-all">✓ PAR confirmed for all ${due.length}</button></div>` : ''}
   <div class="summary">
     ${STATUSES.map(s => `<div class="sum" style="${stStyle(s.key)}"><div class="n">${c[s.key]}</div><div class="l">${s.label}</div></div>`).join('')}
     <div class="sum" style="--c:var(--red)"><div class="n">${c.personnel}</div><div class="l">Personnel on scene</div></div>
   </div>
   <div class="quickadd">
+    <button class="qa eoc" data-action="add-eoc">+ EOC</button>
     ${t.quick.map(k => `<button class="qa" data-action="add" data-rtype="${k}">+ ${RTYPES[k].label}</button>`).join('')}
     <button class="qa more" data-action="add" data-rtype="other">+ Other…</button>
   </div>
@@ -341,27 +468,30 @@ function incidentHTML(i){
 }
 
 function column(i, s){
-  let list = i.resources.filter(r => r.status === s.key);
-  // Longest-in-status first, except Left Scene shows most recent first
+  const list = i.resources.filter(r => r.status === s.key);
   list.sort((a, b) => s.key === 'left' ? b.statusAt - a.statusAt : a.statusAt - b.statusAt);
   return `
   <section class="col">
     <div class="col-head" style="${stStyle(s.key)}"><span>${s.label}</span><span class="cnt">${list.length}</span></div>
-    <div class="col-body">${list.length ? list.map(card).join('') : `<div class="empty">None</div>`}</div>
+    <div class="col-body">${list.length ? list.map(r => card(i, r)).join('') : `<div class="empty">None</div>`}</div>
   </section>`;
 }
 
-function card(r){
-  const s = ST[r.status], t = rt(r);
+function card(i, r){
+  const s = ST[r.status], t = rt(r), due = isDue(i, r);
+  const showPar = r.status === 'working' && parMs() > 0 && !i.closedAt && hasCrew(r);
+  const showPers = hasCrew(r) || !EQUIP_TYPES.includes(r.rtype);
   return `
-  <div class="card ${r.status === 'left' ? 'left-scene' : ''}" style="${stStyle(r.status)}">
+  <div class="card ${r.status === 'left' ? 'left-scene' : ''} ${due ? 'par-due' : ''}" style="${stStyle(r.status)}">
     <button class="card-main" data-action="resource" data-id="${r.id}">
-      <div class="card-top"><span class="abbr">${t.abbr}</span><span class="unit">${esc(r.unit)}</span><span class="pers">👤 ${+r.personnel || 0}</span></div>
+      <div class="card-top"><span class="abbr">${t.abbr}</span><span class="unit">${esc(r.unit)}</span>${r.ma ? '<span class="ma">MA</span>' : ''}${showPers ? `<span class="pers">👤 ${+r.personnel || 0}</span>` : ''}</div>
       <div class="card-sub">${esc(t.label)}${r.agency ? ' · ' + esc(r.agency) : ''}</div>
       ${r.assignment ? `<div class="assign">📍 ${esc(r.assignment)}</div>` : ''}
-      <div class="card-time">${s.short} ${fmtTime(r.statusAt)} · <b data-since="${r.statusAt}" ${r.status === 'working' ? 'data-warn="1"' : ''}></b></div>
+      <div class="card-time">${s.short} ${fmtTime(r.statusAt)} · <b data-since="${r.statusAt}"></b></div>
+      ${showPar ? `<div class="par-line">PAR <span data-par="${parBase(r)}"></span></div>` : ''}
     </button>
     <div class="card-actions">
+      ${due ? `<button class="mini par-btn" data-action="par" data-id="${r.id}">✓ PAR</button>` : ''}
       ${QUICK[r.status].map(k => `<button class="mini" style="${stStyle(k)}" data-action="set-status" data-id="${r.id}" data-status="${k}">${r.status === 'left' ? '↩ Returned' : '→ ' + ST[k].short}</button>`).join('')}
     </div>
   </div>`;
@@ -369,23 +499,27 @@ function card(r){
 
 // ---------- Live timers ----------
 function tick(){
-  const t = now(), warnMs = (+S.settings.rehabMin || 0) * 60000;
-  document.querySelectorAll('[data-since]').forEach(el => {
-    const ms = t - +el.dataset.since;
-    el.textContent = fmtDur(ms);
-    if (el.dataset.warn) {
-      const c = el.closest('.card');
-      if (c) c.classList.toggle('overdue', warnMs > 0 && ms >= warnMs);
-    }
+  const t = now(), pm = parMs();
+  document.querySelectorAll('[data-since]').forEach(el => { el.textContent = fmtDur(t - +el.dataset.since); });
+  document.querySelectorAll('[data-par]').forEach(el => {
+    const rem = pm - (t - +el.dataset.par);
+    el.textContent = rem > 0 ? 'due in ' + fmtDur(rem + 59999) : 'DUE — ' + fmtDur(-rem) + ' overdue';
   });
-  document.querySelectorAll('[data-elapsed]').forEach(el => {
-    el.textContent = fmtDur((+el.dataset.end || t) - +el.dataset.elapsed, true);
-  });
+  document.querySelectorAll('[data-elapsed]').forEach(el => { el.textContent = fmtDur((+el.dataset.end || t) - +el.dataset.elapsed, true); });
   document.querySelectorAll('[data-clock]').forEach(el => el.textContent = fmtTime(t));
+  // A unit just became PAR-due: redraw (banner + buttons) and sound the alert
+  if (view.screen === 'incident' && inc()) {
+    const i = inc(), key = dueList(i, t).map(r => r.id).join(',');
+    if (key !== lastDueKey) {
+      const prev = lastDueKey.split(','), fresh = key && key.split(',').some(id => !prev.includes(id));
+      const same = lastDueInc === i.id;
+      render();
+      if (fresh && same) beep();
+    }
+  }
 }
 setInterval(tick, 1000);
 
-// Keep the screen awake while an incident is open
 let lock = null;
 async function wakeLock(want){
   try {
@@ -397,33 +531,77 @@ async function wakeLock(want){
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { wakeLock(view.screen === 'incident'); tick(); } });
 
-// ---------- Modal + toast ----------
+// ---------- Modals, confirm, toast ----------
 let mctx = {};
-function openModal(html){
-  $('#modal-root').innerHTML = `<div class="backdrop"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
-}
+function openModal(html){ $('#modal-root').innerHTML = `<div class="backdrop"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`; }
 function closeModal(){ $('#modal-root').innerHTML = ''; mctx = {}; }
+function ask(msg, okLabel, danger){
+  return new Promise(res => {
+    const root = $('#confirm-root');
+    root.innerHTML = `<div class="backdrop"><div class="modal small" role="alertdialog" aria-modal="true">
+      <p>${esc(msg).replace(/\n/g, '<br>')}</p>
+      <div class="modal-actions"><button class="btn" id="cf-no">Cancel</button><button class="btn ${danger ? 'danger-fill' : 'primary'}" id="cf-yes">${esc(okLabel)}</button></div></div></div>`;
+    const done = v => { root.innerHTML = ''; res(v); };
+    root.querySelector('#cf-no').onclick = () => done(false);
+    root.querySelector('#cf-yes').onclick = () => done(true);
+    root.querySelector('#cf-yes').focus();
+  });
+}
 let toastTimer, undoState = null;
 function toast(msg, withUndo){
   const el = $('#toast');
   el.innerHTML = `<span>${esc(msg)}</span>${withUndo ? '<button data-action="undo">Undo</button>' : ''}`;
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.classList.remove('show'); if (withUndo) undoState = null; }, withUndo ? 6000 : 2500);
+  toastTimer = setTimeout(() => { el.classList.remove('show'); if (withUndo) undoState = null; }, withUndo ? 6000 : 2800);
 }
 const val = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+async function copyText(text, fallbackEl){
+  try { await navigator.clipboard.writeText(text); toast('Copied'); }
+  catch (e) {
+    if (fallbackEl) { fallbackEl.focus(); fallbackEl.select && fallbackEl.select(); }
+    toast('Copy was blocked. The text is selected; tap and hold to copy it.');
+  }
+}
 
-// ---------- Status changes ----------
+// ---------- Resource changes ----------
 function setStatus(i, r, status){
   if (r.status === status) return;
-  undoState = {incId:i.id, resId:r.id, status:r.status, statusAt:r.statusAt, hist:r.history.length, log:i.log.length};
+  undoState = {kind:'status', incId:i.id, resId:r.id, status:r.status, statusAt:r.statusAt, parAt:r.parAt, hist:r.history.length, log:i.log.length};
   const from = r.status;
-  r.status = status;
-  r.statusAt = now();
+  r.status = status; r.statusAt = now();
+  if (status === 'working') r.parAt = r.statusAt;
   r.history.push({status, at:r.statusAt});
   addLog(i, `${r.unit}: ${ST[from].short} → ${ST[status].label}`);
   save(); render();
   toast(`${r.unit} → ${ST[status].label}`, true);
+}
+
+function createResource(i, o){
+  const t = now(), status = o.status;
+  const r = {id:uid(), rtype:o.rtype, unit:o.unit, agency:o.agency || '', personnel:o.personnel, ma:!!o.ma,
+             assignment:o.assignment || '', notes:'', status, statusAt:t, addedAt:t, history:[{status, at:t}]};
+  if (status === 'working') r.parAt = t;
+  undoState = {kind:'add', incId:i.id, resId:r.id, log:i.log.length};
+  i.resources.push(r);
+  addLog(i, `${r.unit}${r.agency && !r.unit.startsWith(r.agency) ? ' (' + r.agency + ')' : ''}${r.ma ? ' [mutual aid]' : ''} added — ${ST[status].label}, ${r.personnel} personnel`);
+  save(); render();
+  toast(`${r.unit} added — ${ST[status].label}`, true);
+  return r;
+}
+
+function nameTaken(i, name){ name = name.toLowerCase(); return i.resources.some(r => r.unit.toLowerCase() === name); }
+function nextName(i, base, plain){
+  if (plain && !nameTaken(i, base)) return base;
+  for (let n = plain ? 2 : 1; ; n++) if (!nameTaken(i, `${base} ${n}`)) return `${base} ${n}`;
+}
+
+function confirmPar(i, list){
+  const t = now();
+  list.forEach(r => { r.parAt = t; });
+  addLog(i, `PAR confirmed: ${list.map(r => `${r.unit} (${+r.personnel || 0})`).join(', ')}`);
+  save(); render();
+  toast(list.length === 1 ? `PAR confirmed — ${list[0].unit}` : `PAR confirmed for ${list.length} units`);
 }
 
 // ---------- Screens / modals ----------
@@ -431,76 +609,169 @@ function newIncidentModal(type){
   const t = ITYPES[type];
   openModal(`
     <h3>${t.icon} New ${t.label}</h3>
-    <label>Incident name / location<input id="f-name" placeholder="e.g. 123 Main St, or Hwy 80 at MM 12" autocomplete="off"></label>
+    <label>Incident name / location (optional)<input id="f-name" placeholder="e.g. 123 Main St, or Hwy 80 at MM 12" autocomplete="off"></label>
     <label>Incident Commander<input id="f-ic" value="${esc(S.settings.icName)}" autocomplete="off"></label>
-    <label>Notes (optional)<input id="f-notes" placeholder="Dispatch info, call #, etc." autocomplete="off"></label>
     <div class="modal-actions"><button class="btn" data-action="close-modal">Cancel</button>
       <button class="btn primary" data-action="create-incident" data-type="${type}">Start Incident</button></div>`);
 }
+
+function assignList(i){ return [...new Set([...itype(i).assign, ...i.resources.map(r => r.assignment).filter(Boolean)])]; }
 
 function addModal(rtype){
   const i = inc();
   rtype = RTYPES[rtype] ? rtype : 'engine';
   mctx = {rtype};
-  const agencies = [...new Set(S.roster.map(r => r.agency).filter(Boolean))].sort();
-  const assigns = [...new Set([...ITYPES[i.type].assign, ...i.resources.map(r => r.assignment).filter(Boolean)])];
+  const t = RTYPES[rtype];
+  const order = [...new Set([...itype(i).quick, ...Object.keys(RTYPES)])].filter(k => !RTYPES[k].hidden);
+  const agencies = [...new Set([...HOME_DEPTS, ...MUTUAL.map(m => m.name), ...S.roster.map(r => r.agency).filter(Boolean)])];
   openModal(`
-    <h3>Add Resource</h3>
-    <span class="field-label">Type</span>
-    <div class="chips" id="type-chips">
-      ${Object.entries(RTYPES).map(([k, t]) => `<button class="chip ${k === rtype ? 'on' : ''}" data-action="pick-type" data-rtype="${k}">${t.label}</button>`).join('')}
+    <h3>Add ${esc(t.label)}</h3>
+    <div class="chips scroll" id="type-chips">
+      ${order.map(k => `<button class="chip ${k === rtype ? 'on' : ''}" data-action="pick-type" data-rtype="${k}">${RTYPES[k].label}</button>`).join('')}
     </div>
-    <div id="saved-units"></div>
-    <div class="grid2">
-      <label>Unit ID / Name<input id="f-unit" placeholder="e.g. Engine 21 or John Smith" autocomplete="off" autocapitalize="words"></label>
-      <label>Agency / Department<input id="f-agency" list="agency-list" autocomplete="off" autocapitalize="words"></label>
-    </div>
-    <div class="grid2">
-      <div class="field">Personnel<div class="stepper"><button data-action="step" data-d="-1">−</button><input id="f-pers" type="number" inputmode="numeric" min="0" value="${RTYPES[rtype].pers}"><button data-action="step" data-d="1">+</button></div></div>
-      <label>Assignment (optional)<input id="f-assign" list="assign-list" autocomplete="off" placeholder="e.g. Water Supply"></label>
-    </div>
-    <label>Notes (optional)<input id="f-notes" autocomplete="off"></label>
-    <datalist id="agency-list">${agencies.map(a => `<option value="${esc(a)}">`).join('')}</datalist>
-    <datalist id="assign-list">${assigns.map(a => `<option value="${esc(a)}">`).join('')}</datalist>
-    <label class="check"><input type="checkbox" id="f-another" ${S.settings.addAnother ? 'checked' : ''}> Keep this window open to add another</label>
     <span class="field-label">Add as</span>
-    <div class="status-btns">
-      ${['enroute', 'staging', 'working'].map(k => `<button class="sbtn" style="${stStyle(k)}" data-action="add-resource" data-status="${k}">${ST[k].label}</button>`).join('')}
-    </div>
-    <div class="modal-actions"><button class="btn" data-action="close-modal">Done</button></div>`);
-  renderSaved();
+    <div class="chips" id="status-chips">${statusChips()}</div>
+    <div id="dept-area">${deptAreaHTML(i)}</div>
+    <details class="custom">
+      <summary>✎ Type a unit name instead</summary>
+      <div class="grid2">
+        <label>Unit ID / Name<input id="f-unit" placeholder="e.g. Medic 7 or John Smith" autocomplete="off" autocapitalize="words"></label>
+        <label>Agency / Department<input id="f-agency" list="agency-list" autocomplete="off" autocapitalize="words"></label>
+      </div>
+      <div class="grid2">
+        <div class="field">Personnel<div class="stepper"><button data-action="step" data-d="-1" aria-label="Fewer">−</button><input id="f-pers" type="number" inputmode="numeric" min="0" value="${t.pers}"><button data-action="step" data-d="1" aria-label="More">+</button></div></div>
+        <label class="check" style="margin-top:34px"><input type="checkbox" id="f-ma"> Mutual aid</label>
+      </div>
+      <datalist id="agency-list">${agencies.map(a => `<option value="${esc(a)}">`).join('')}</datalist>
+      <div class="modal-actions"><button class="btn primary" data-action="add-custom">Add ${esc(t.label)}</button></div>
+    </details>
+    <div class="modal-actions"><button class="btn primary" data-action="close-modal">Done</button></div>`);
 }
 
-function renderSaved(){
-  const i = inc(), box = $('#saved-units');
-  if (!box) return;
+function statusChips(){
+  const cur = S.settings.addStatus || 'enroute';
+  return ['enroute', 'staging', 'working'].map(k => `<button class="chip st ${k === cur ? 'on' : ''}" style="${stStyle(k)}" data-action="add-status" data-v="${k}">${ST[k].label}</button>`).join('');
+}
+
+function deptState(i, name, ma){
+  const type = mctx.rtype, t = RTYPES[type];
+  if (!ma && DEPT_TYPES.includes(type)) {
+    const ex = i.resources.filter(r => r.unit.toLowerCase().startsWith((name + ' ' + t.short).toLowerCase()) && r.agency === name && r.rtype === type)
+      .sort((a, b) => (a.status === 'left') - (b.status === 'left'))[0];
+    return ex ? {key:ex.status, text:`${ST[ex.status].short} ${fmtTime(ex.statusAt)}`} : null;
+  }
+  const n = i.resources.filter(r => r.agency === name && r.rtype === type && r.status !== 'left').length;
+  return n ? {key:null, text:`${n} on incident`} : null;
+}
+
+function deptBtn(i, name, label, ma){
+  const st = deptState(i, name, ma);
+  return `<button class="dept ${ma ? 'ma-dept' : ''}" ${st && st.key ? `style="${stStyle(st.key)}"` : ''} data-action="add-dept" data-name="${esc(name)}" data-ma="${ma ? 1 : ''}">
+    <span class="dn">${esc(label)}</span><span class="ds">${st ? esc(st.text) : ''}</span></button>`;
+}
+
+function deptAreaHTML(i){
+  const type = mctx.rtype;
   const busy = new Set(i.resources.filter(r => r.status !== 'left').map(r => r.unit.toLowerCase()));
-  const list = S.roster.filter(u => u.rtype === mctx.rtype && !busy.has(u.unit.toLowerCase()))
-    .sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0)).slice(0, 30);
-  box.innerHTML = list.length ? `<span class="field-label">Saved ${esc(RTYPES[mctx.rtype].label)} units — tap to fill in</span>
-    <div class="chips">${list.map(u => `<button class="chip saved" data-action="fill-saved" data-unit="${esc(u.unit)}">${esc(u.unit)}${u.agency ? ' · ' + esc(u.agency) : ''}</button>`).join('')}</div>` : '';
+  const saved = S.roster.filter(u => u.rtype === type && !busy.has(u.unit.toLowerCase()))
+    .sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0)).slice(0, 24);
+  const hint = DEPT_TYPES.includes(type) ? 'Tap a department to add its ' + RTYPES[type].label.toLowerCase()
+             : 'Tap a department; units are numbered automatically';
+  return `
+    ${saved.length ? `<span class="field-label">Saved ${esc(RTYPES[type].label)} units</span>
+      <div class="chips">${saved.map(u => `<button class="chip saved" data-action="add-saved" data-unit="${esc(u.unit)}">${esc(u.unit)}${u.agency && !u.unit.startsWith(u.agency) ? ' · ' + esc(u.agency) : ''}</button>`).join('')}</div>` : ''}
+    <span class="field-label">County departments — ${hint}</span>
+    <div class="dept-grid">${HOME_DEPTS.map(d => deptBtn(i, d, d, false)).join('')}</div>
+    <span class="field-label">Mutual aid</span>
+    <div class="dept-grid">${MUTUAL.map(m => deptBtn(i, m.name, m.short, true)).join('')}</div>`;
+}
+function refreshAdd(){
+  const i = inc(); if (!i) return;
+  const a = $('#dept-area'); if (a) a.innerHTML = deptAreaHTML(i);
+  const e = $('#eoc-area'); if (e) e.innerHTML = eocAreaHTML(i);
+}
+
+// ---------- EOC ----------
+function eocModal(){
+  mctx = {eoc:true};
+  openModal(`
+    <h3>Add EOC</h3>
+    <span class="field-label">Add as</span>
+    <div class="chips" id="status-chips">${statusChips()}</div>
+    <div id="eoc-area">${eocAreaHTML(inc())}</div>
+    <div class="modal-actions"><button class="btn primary" data-action="close-modal">Done</button></div>`);
+}
+function eocBtn(i, unit, rtype){
+  const ex = i.resources.find(r => r.unit === unit);
+  return `<button class="dept" ${ex ? `style="${stStyle(ex.status)}"` : ''} data-action="add-eoc-item" data-unit="${esc(unit)}" data-rtype="${rtype}">
+    <span class="dn">${esc(unit.replace(/^EOC /, ''))}</span><span class="ds">${ex ? `${ST[ex.status].short} ${fmtTime(ex.statusAt)}` : ''}</span></button>`;
+}
+function eocAreaHTML(i){
+  return `
+    <span class="field-label">EOC staff — tap each person</span>
+    <div class="dept-grid">${EOC.staff.map(n => eocBtn(i, n, 'eocstaff')).join('')}</div>
+    <span class="field-label">EOC equipment</span>
+    <div class="dept-grid">${EOC.equip.map(e => eocBtn(i, e.unit, e.rtype)).join('')}</div>`;
+}
+async function addEocItem(unit, rtype){
+  const i = inc(), status = S.settings.addStatus || 'enroute';
+  const ex = i.resources.find(r => r.unit === unit);
+  if (ex && ex.status !== 'left') {
+    if (ex.status !== status && await ask(`${unit} is already ${ST[ex.status].label}.\n\nChange to ${ST[status].label}?`, 'Change status')) { setStatus(i, ex, status); refreshAdd(); }
+    return;
+  }
+  if (ex) {
+    if (await ask(`${unit} left the scene at ${fmtTime(ex.statusAt)}.\n\nBring back as ${ST[status].label}?`, 'Bring back')) { setStatus(i, ex, status); refreshAdd(); }
+    return;
+  }
+  createResource(i, {rtype, unit, agency:EOC.name, personnel:RTYPES[rtype].pers, status});
+  refreshAdd();
+}
+
+async function addFromDept(name, ma){
+  const i = inc(), type = mctx.rtype, t = RTYPES[type], status = S.settings.addStatus || 'enroute';
+  const label = ma ? MUTUAL.find(m => m.name === name).short : name;
+  const base = `${label} ${t.short}`, plain = !ma && DEPT_TYPES.includes(type);
+  if (plain) {
+    const active = i.resources.find(r => r.unit.toLowerCase() === base.toLowerCase());
+    if (active && active.status === 'left') {
+      if (await ask(`${active.unit} left the scene at ${fmtTime(active.statusAt)}.\n\nBring it back as ${ST[status].label}?`, 'Bring it back')) { setStatus(i, active, status); refreshAdd(); }
+      return;
+    }
+    if (active && !(await ask(`${active.unit} is already ${ST[active.status].label}.\n\nAdd a second ${label} ${t.label.toLowerCase()}?`, 'Add a second one'))) return;
+  }
+  createResource(i, {rtype:type, unit:nextName(i, base, plain), agency:name, personnel:t.pers, ma, status});
+  refreshAdd();
 }
 
 function resourceModal(r){
   const i = inc(), t = rt(r);
-  const assigns = [...new Set([...ITYPES[i.type].assign, ...i.resources.map(x => x.assignment).filter(Boolean)])];
   openModal(`
-    <h3><span class="abbr">${t.abbr}</span> ${esc(r.unit)}</h3>
+    <h3><span class="abbr">${t.abbr}</span> ${esc(r.unit)} ${r.ma ? '<span class="ma">MUTUAL AID</span>' : ''}</h3>
     <div class="muted">${esc(t.label)}${r.agency ? ' · ' + esc(r.agency) : ''} · Added ${fmtTime(r.addedAt)}</div>
     <span class="field-label">Status — tap to change</span>
     <div class="status-btns four">
       ${STATUSES.map(s => `<button class="sbtn ${r.status === s.key ? 'current' : ''}" style="${stStyle(s.key)}" data-action="set-status" data-id="${r.id}" data-status="${s.key}" data-from-modal="1">${s.label}</button>`).join('')}
     </div>
     <div class="grid2">
-      <label>Unit ID / Name<input id="e-unit" value="${esc(r.unit)}" autocomplete="off"></label>
-      <label>Agency / Department<input id="e-agency" value="${esc(r.agency)}" autocomplete="off"></label>
+      <div class="field">Personnel<div class="stepper"><button data-action="step" data-d="-1" aria-label="Fewer">−</button><input id="e-pers" type="number" inputmode="numeric" min="0" value="${+r.personnel || 0}"><button data-action="step" data-d="1" aria-label="More">+</button></div></div>
+      <label class="check" style="margin-top:34px"><input type="checkbox" id="e-ma" ${r.ma ? 'checked' : ''}> Mutual aid</label>
     </div>
-    <div class="grid2">
-      <div class="field">Personnel<div class="stepper"><button data-action="step" data-d="-1">−</button><input id="e-pers" type="number" inputmode="numeric" min="0" value="${+r.personnel || 0}"><button data-action="step" data-d="1">+</button></div></div>
-      <label>Assignment<input id="e-assign" list="assign-list" value="${esc(r.assignment)}" autocomplete="off"></label>
+    <span class="field-label">Assignment — tap one</span>
+    <div class="chips" id="assign-chips">
+      <button class="chip ${!r.assignment ? 'on' : ''}" data-action="pick-assign" data-v="">None</button>
+      ${assignList(i).map(a => `<button class="chip ${a === r.assignment ? 'on' : ''}" data-action="pick-assign" data-v="${esc(a)}">${esc(a)}</button>`).join('')}
     </div>
-    <label>Notes<textarea id="e-notes" rows="2">${esc(r.notes)}</textarea></label>
-    <datalist id="assign-list">${assigns.map(a => `<option value="${esc(a)}">`).join('')}</datalist>
+    <input type="hidden" id="e-assign" value="${esc(r.assignment)}">
+    <details class="custom">
+      <summary>✎ Edit name, agency, notes</summary>
+      <div class="grid2">
+        <label>Unit ID / Name<input id="e-unit" value="${esc(r.unit)}" autocomplete="off"></label>
+        <label>Agency / Department<input id="e-agency" value="${esc(r.agency)}" autocomplete="off"></label>
+      </div>
+      <label>Other assignment<input id="e-assign-other" placeholder="Type a custom assignment" autocomplete="off"></label>
+      <label>Notes<textarea id="e-notes" rows="2">${esc(r.notes)}</textarea></label>
+    </details>
     <span class="field-label">Timeline</span>
     <ul class="timeline">${r.history.map(h => `<li><b>${fmtTime(h.at)}</b> — ${ST[h.status].label}</li>`).join('')}</ul>
     <div class="modal-actions">
@@ -510,30 +781,34 @@ function resourceModal(r){
     </div>`);
 }
 
-// Saves edited fields from the resource modal; logs meaningful changes
 function applyResourceFields(i, r){
   const unit = val('e-unit') || r.unit, agency = val('e-agency'), pers = Math.max(0, parseInt(val('e-pers')) || 0),
-        assignment = val('e-assign'), notes = val('e-notes');
+        assignment = val('e-assign-other') || val('e-assign'), notes = val('e-notes'), ma = $('#e-ma').checked;
   if (unit !== r.unit) addLog(i, `${r.unit} renamed to ${unit}`);
   if (assignment !== (r.assignment || '')) addLog(i, assignment ? `${unit} assigned: ${assignment}` : `${unit} assignment cleared`);
   if (pers !== (+r.personnel || 0)) addLog(i, `${unit} personnel: ${+r.personnel || 0} → ${pers}`);
-  Object.assign(r, {unit, agency, personnel:pers, assignment, notes});
-  rememberUnit(r);
+  if (ma !== !!r.ma) addLog(i, `${unit} ${ma ? 'marked' : 'unmarked'} as mutual aid`);
+  const renamed = unit !== r.unit;
+  Object.assign(r, {unit, agency, personnel:pers, assignment, notes, ma});
+  if (renamed) rememberUnit(r);
 }
 
+// Only typed-in units go to the saved list; department units are built in.
 function rememberUnit(r){
   const key = r.unit.toLowerCase();
   const existing = S.roster.find(u => u.unit.toLowerCase() === key);
-  const entry = {unit:r.unit, rtype:r.rtype, agency:r.agency, personnel:r.personnel, lastUsed:now()};
+  const entry = {unit:r.unit, rtype:r.rtype, agency:r.agency, personnel:r.personnel, ma:!!r.ma, lastUsed:now()};
   if (existing) Object.assign(existing, entry); else S.roster.push(entry);
 }
 
 function noteModal(){
+  const i = inc(), quick = [...itype(i).notes, ...COMMON_NOTES];
   openModal(`
     <h3>📝 Add Log Note</h3>
-    <label>Note<textarea id="f-note" rows="3" placeholder="e.g. Primary search all clear; PAR complete; Power cut by utility"></textarea></label>
+    <span class="field-label">Tap to log instantly</span>
+    <div class="chips">${quick.map(n => `<button class="chip" data-action="quick-note" data-v="${esc(n)}">${esc(n)}</button>`).join('')}</div>
+    <label>Or type a note<textarea id="f-note" rows="2"></textarea></label>
     <div class="modal-actions"><button class="btn" data-action="close-modal">Cancel</button><button class="btn primary" data-action="add-note">Add to Log</button></div>`);
-  setTimeout(() => { const f = $('#f-note'); if (f) f.focus(); }, 50);
 }
 
 function logModal(){
@@ -547,7 +822,7 @@ function logModal(){
 }
 
 function reportText(i){
-  const t = ITYPES[i.type], c = counts(i), L = [];
+  const t = itype(i), c = counts(i), L = [];
   L.push('INCIDENT RESOURCE REPORT');
   L.push(t.label + (i.name ? ' — ' + i.name : ''));
   L.push(`Started: ${fmtDate(i.startedAt)} ${fmtTime(i.startedAt)}` +
@@ -556,11 +831,11 @@ function reportText(i){
   if (i.notes) L.push('Notes: ' + i.notes);
   L.push('', 'STATUS SUMMARY');
   L.push(STATUSES.map(s => `${s.short}: ${c[s.key]}`).join('   '));
-  L.push(`Personnel on scene: ${c.personnel}   Total resources: ${i.resources.length}   Total personnel used: ${c.totalPers}`);
+  L.push(`Personnel on scene: ${c.personnel}   Total resources: ${i.resources.length}   Total personnel used: ${c.totalPers}   Mutual aid units: ${c.ma}`);
   L.push('', 'RESOURCES');
   i.resources.slice().sort((a, b) => a.addedAt - b.addedAt).forEach(r => {
     const tm = times(r);
-    L.push(`• ${r.unit} — ${rt(r).label}${r.agency ? ', ' + r.agency : ''} — ${+r.personnel || 0} personnel — ${ST[r.status].label}`);
+    L.push(`• ${r.unit}${r.ma ? ' [MUTUAL AID]' : ''} — ${rt(r).label}${r.agency ? ', ' + r.agency : ''} — ${+r.personnel || 0} personnel — ${ST[r.status].label}`);
     L.push(`    Added ${fmtTime(r.addedAt)}   Arrived ${tm.arrived ? fmtTime(tm.arrived) : '—'}   Left ${tm.left ? fmtTime(tm.left) : '—'}${r.assignment ? '   Assignment: ' + r.assignment : ''}`);
     if (r.notes) L.push('    Notes: ' + r.notes);
   });
@@ -574,28 +849,13 @@ function reportModal(){
   mctx.report = reportText(i);
   openModal(`
     <h3>📄 Incident Report</h3>
-    <div class="muted">Share by email / Messages / AirDrop, copy it, or print / save as PDF.</div>
-    <div class="report">${esc(mctx.report)}</div>
+    <div class="muted">Copy the report, then paste it into an email, Notes, or your after-action file.</div>
+    <textarea class="report" id="report-text" readonly>${esc(mctx.report)}</textarea>
     <div class="modal-actions">
-      ${navigator.share ? '<button class="btn primary" data-action="share-report">Share…</button>' : ''}
-      <button class="btn" data-action="copy-report">Copy</button>
-      <button class="btn" data-action="print-report">Print / PDF</button>
-      <span class="spacer"></span><button class="btn" data-action="close-modal">Close</button>
+      ${window.IC_PWA && navigator.share ? '<button class="btn" data-action="share-report">Share…</button>' : ''}
+      <button class="btn primary" data-action="copy-report">Copy report</button>
+      <button class="btn" data-action="close-modal">Close</button>
     </div>`);
-}
-
-function printReport(i){
-  const t = ITYPES[i.type], c = counts(i);
-  $('#print').innerHTML = `
-    <h1>${esc(t.label)}${i.name ? ' — ' + esc(i.name) : ''}</h1>
-    <div>Started ${fmtDate(i.startedAt)} ${fmtTime(i.startedAt)}${i.closedAt ? ' · Closed ' + fmtDate(i.closedAt) + ' ' + fmtTime(i.closedAt) + ' · Duration ' + fmtDur(i.closedAt - i.startedAt) : ''}${i.ic ? ' · IC: ' + esc(i.ic) : ''}</div>
-    ${i.notes ? `<div>Notes: ${esc(i.notes)}</div>` : ''}
-    <div style="margin-top:6px">${STATUSES.map(s => `${s.label}: <b>${c[s.key]}</b>`).join(' &nbsp; ')} &nbsp; Personnel on scene: <b>${c.personnel}</b></div>
-    <table><thead><tr><th>Unit</th><th>Type</th><th>Agency</th><th>Pers.</th><th>Status</th><th>Added</th><th>Arrived</th><th>Left</th><th>Assignment / Notes</th></tr></thead>
-    <tbody>${i.resources.slice().sort((a, b) => a.addedAt - b.addedAt).map(r => { const tm = times(r); return `<tr><td><b>${esc(r.unit)}</b></td><td>${esc(rt(r).label)}</td><td>${esc(r.agency)}</td><td>${+r.personnel || 0}</td><td>${ST[r.status].label}</td><td>${fmtTime(r.addedAt)}</td><td>${tm.arrived ? fmtTime(tm.arrived) : '—'}</td><td>${tm.left ? fmtTime(tm.left) : '—'}</td><td>${esc([r.assignment, r.notes].filter(Boolean).join(' — '))}</td></tr>`; }).join('')}</tbody></table>
-    <h1>Activity Log</h1>
-    <table><tbody>${i.log.map(l => `<tr><td style="width:60px">${fmtTime(l.at)}</td><td>${l.note ? '<b>NOTE:</b> ' : ''}${esc(l.text)}</td></tr>`).join('')}</tbody></table>`;
-  window.print();
 }
 
 function settingsModal(){
@@ -608,31 +868,86 @@ function settingsModal(){
       <label>Agency name (shown on home screen)<input id="s-org" value="${esc(s.org)}" autocomplete="off"></label>
     </div>
     <div class="grid2">
-      <label>Rehab alert — flag units working longer than (minutes, 0 = off)<input id="s-rehab" type="number" inputmode="numeric" min="0" value="${+s.rehabMin || 0}"></label>
-      <div class="field">Display
-        <div class="seg"><button class="chip ${s.theme === 'dark' ? 'on' : ''}" data-action="theme" data-v="dark">🌙 Dark</button><button class="chip ${s.theme === 'light' ? 'on' : ''}" data-action="theme" data-v="light">☀️ Light (sunlight)</button></div>
-      </div>
+      <label>PAR check: minutes after a unit starts working (0 = off)<input id="s-par" type="number" inputmode="numeric" min="0" value="${+s.parMin || 0}"></label>
+      <label class="check" style="margin-top:34px"><input type="checkbox" id="s-sound" ${s.parSound ? 'checked' : ''}> Beep when a PAR is due</label>
     </div>
-    <span class="field-label">Saved units (${roster.length}) — remembered automatically when you add resources</span>
-    ${roster.length ? `<ul class="roster">${roster.map(u => `<li><span><b>${esc(u.unit)}</b> <span class="muted">· ${esc((RTYPES[u.rtype] || RTYPES.other).label)}${u.agency ? ' · ' + esc(u.agency) : ''}</span></span><button data-action="del-roster" data-unit="${esc(u.unit)}">Remove</button></li>`).join('')}</ul>` : '<div class="muted" style="margin-top:6px">None yet.</div>'}
+    <span class="field-label">Display</span>
+    <div class="seg">
+      <button class="chip ${s.theme === 'auto' ? 'on' : ''}" data-action="theme" data-v="auto">Match device</button>
+      <button class="chip ${s.theme === 'dark' ? 'on' : ''}" data-action="theme" data-v="dark">🌙 Dark</button>
+      <button class="chip ${s.theme === 'light' ? 'on' : ''}" data-action="theme" data-v="light">☀️ Light</button>
+    </div>
+    <span class="field-label">Saved typed-in units (${roster.length})</span>
+    ${roster.length ? `<ul class="roster">${roster.map(u => `<li><span><b>${esc(u.unit)}</b> <span class="muted">· ${esc((RTYPES[u.rtype] || RTYPES.other).label)}${u.agency ? ' · ' + esc(u.agency) : ''}</span></span><button data-action="del-roster" data-unit="${esc(u.unit)}">Remove</button></li>`).join('')}</ul>` : '<div class="muted" style="margin-top:6px">None yet. Units you type in by name are remembered here.</div>'}
     <span class="field-label">Backup</span>
-    <div class="seg" style="flex-wrap:wrap">
-      <button class="btn" data-action="export-data">⬆︎ Export backup</button>
-      <button class="btn" data-action="import-data">⬇︎ Import backup</button>
+    <div class="seg">
+      <button class="btn" data-action="backup">Backup &amp; restore</button>
       <button class="btn danger" data-action="erase-all">Erase all data</button>
     </div>
     <div class="modal-actions"><button class="btn" data-action="close-modal">Cancel</button><button class="btn primary" data-action="save-settings">Save</button></div>`);
+}
+
+function backupText(){ return JSON.stringify({incidents:S.incidents, roster:S.roster, settings:S.settings}); }
+function backupModal(){
+  openModal(`
+    <h3>Backup &amp; Restore</h3>
+    <div class="muted">Copy this text and keep it in Notes or an email to yourself. To restore, paste a backup into the same box and tap Restore.</div>
+    <textarea class="report" id="backup-text" spellcheck="false">${esc(backupText())}</textarea>
+    <div class="modal-actions">
+      <button class="btn" data-action="import-file">Restore from file…</button>
+      ${window.IC_PWA ? '<button class="btn" data-action="export-file">Save backup file…</button>' : ''}
+      <span class="spacer"></span>
+      <button class="btn" data-action="restore-text">Restore pasted backup</button>
+      <button class="btn primary" data-action="copy-backup">Copy backup</button>
+    </div>
+    <div class="modal-actions"><button class="btn" data-action="close-modal">Close</button></div>`);
+}
+
+function mergeBackup(text){
+  const d = JSON.parse(text);
+  if (!d || !Array.isArray(d.incidents)) throw new Error('bad');
+  const ids = new Set(S.incidents.map(i => i.id));
+  const fresh = d.incidents.filter(i => i && i.id && !ids.has(i.id));
+  S.incidents.push(...fresh);
+  (d.roster || []).forEach(u => { if (u && u.unit && !S.roster.some(x => x.unit.toLowerCase() === u.unit.toLowerCase())) S.roster.push(u); });
+  save(); closeModal(); render();
+  toast(`Restored ${fresh.length} incident(s)`);
+}
+
+function sampleIncident(){
+  const t0 = now() - 38 * 60000, m = n => t0 + n * 60000;
+  const R = (rtype, unit, agency, personnel, hist, assignment, ma) => {
+    const history = hist.map(([status, at]) => ({status, at:m(at)})), last = history[history.length - 1];
+    const w = [...history].reverse().find(h => h.status === 'working');
+    return {id:uid(), rtype, unit, agency, personnel, ma:!!ma, assignment:assignment || '', notes:'', status:last.status, statusAt:last.at, parAt:w && w.at, addedAt:history[0].at, history};
+  };
+  const i = {id:uid(), type:'structure', name:'SAMPLE — 412 Oak St', ic:'Sample IC', notes:'Example data. Delete it when you are done looking.', startedAt:t0, closedAt:null, log:[],
+    resources:[
+      R('engine', 'Pelahatchie Engine', 'Pelahatchie', 3, [['enroute', 0], ['working', 6]], 'Fire Attack'),
+      R('tanker', 'Puckett Tanker', 'Puckett', 1, [['enroute', 1], ['staging', 14], ['working', 26]], 'Water Supply'),
+      R('rescue', 'Pelahatchie Rescue', 'Pelahatchie', 2, [['enroute', 2], ['staging', 11]]),
+      R('pov', 'Pelahatchie POV 1', 'Pelahatchie', 1, [['enroute', 3], ['staging', 15]]),
+      R('engine', 'Scott County Engine 1', 'Scott County Equip', 4, [['enroute', 30]], '', true),
+      R('brush', 'Star Brush', 'Star', 2, [['enroute', 1], ['working', 9], ['left', 31]]),
+    ]};
+  addLog(i, 'Incident started — Structure Fire at 412 Oak St (sample)');
+  i.resources.forEach(r => r.history.forEach((h, k) => i.log.push({at:h.at, text:k ? `${r.unit}: → ${ST[h.status].label}` : `${r.unit} added — ${ST[h.status].label}`})));
+  i.log.sort((a, b) => a.at - b.at);
+  i.log[0].at = t0;
+  S.incidents.push(i);
+  go({screen:'incident', id:i.id});
 }
 
 // ---------- Actions ----------
 const actions = {
   'home': () => go({screen:'home'}),
   'settings': settingsModal,
-  'close-modal': closeModal,
+  'close-modal': () => { closeModal(); },
+  'sample': sampleIncident,
   'new-incident': b => newIncidentModal(b.dataset.type),
   'create-incident': b => {
     const type = b.dataset.type, ic = val('f-ic');
-    const i = {id:uid(), type, name:val('f-name'), ic, notes:val('f-notes'), startedAt:now(), closedAt:null, resources:[], log:[]};
+    const i = {id:uid(), type, name:val('f-name'), ic, notes:'', startedAt:now(), closedAt:null, resources:[], log:[]};
     addLog(i, `Incident started — ${ITYPES[type].label}${i.name ? ' at ' + i.name : ''}${ic ? '. IC: ' + ic : ''}`);
     S.incidents.push(i);
     if (ic) S.settings.icName = ic;
@@ -640,48 +955,38 @@ const actions = {
   },
   'open-incident': b => go({screen:'incident', id:b.dataset.id}),
   'add': b => addModal(b.dataset.rtype),
-  'pick-type': b => {
-    mctx.rtype = b.dataset.rtype;
-    document.querySelectorAll('#type-chips .chip').forEach(c => c.classList.toggle('on', c === b));
-    const p = $('#f-pers');
-    if (p && !p.dataset.touched) p.value = RTYPES[mctx.rtype].pers;
-    renderSaved();
-  },
-  'fill-saved': b => {
-    const u = S.roster.find(x => x.unit === b.dataset.unit);
+  'pick-type': b => addModal(b.dataset.rtype),
+  'add-status': b => { S.settings.addStatus = b.dataset.v; save(); $('#status-chips').innerHTML = statusChips(); },
+  'add-dept': b => addFromDept(b.dataset.name, !!b.dataset.ma),
+  'add-eoc': eocModal,
+  'add-eoc-item': b => addEocItem(b.dataset.unit, b.dataset.rtype),
+  'add-saved': b => {
+    const i = inc(), u = S.roster.find(x => x.unit === b.dataset.unit);
     if (!u) return;
-    $('#f-unit').value = u.unit;
-    $('#f-agency').value = u.agency || '';
-    $('#f-pers').value = u.personnel ?? RTYPES[u.rtype].pers;
-    document.querySelectorAll('#saved-units .chip').forEach(c => c.classList.toggle('on', c === b));
+    u.lastUsed = now();
+    createResource(i, {rtype:u.rtype, unit:u.unit, agency:u.agency, personnel:u.personnel ?? RTYPES[u.rtype].pers, ma:u.ma, status:S.settings.addStatus || 'enroute'});
+    refreshAdd();
+  },
+  'add-custom': async () => {
+    const i = inc(), unit = val('f-unit');
+    if (!unit) { const f = $('#f-unit'); f.focus(); toast('Type a unit ID or name first'); return; }
+    const dup = i.resources.find(r => r.unit.toLowerCase() === unit.toLowerCase() && r.status !== 'left');
+    if (dup && !(await ask(`${dup.unit} is already on this incident (${ST[dup.status].label}). Add it again?`, 'Add again'))) return;
+    const r = createResource(i, {rtype:mctx.rtype, unit, agency:val('f-agency'), personnel:Math.max(0, parseInt(val('f-pers')) || 0),
+                                 ma:$('#f-ma').checked, status:S.settings.addStatus || 'enroute'});
+    rememberUnit(r); save();
+    $('#f-unit').value = '';
+    refreshAdd();
   },
   'step': b => {
     const inp = b.parentElement.querySelector('input');
     inp.value = Math.max(0, (parseInt(inp.value) || 0) + +b.dataset.d);
-    inp.dataset.touched = 1;
-  },
-  'add-resource': b => {
-    const i = inc(), unit = val('f-unit');
-    if (!unit) { const f = $('#f-unit'); f.focus(); f.style.outline = '2px solid var(--red)'; toast('Enter a Unit ID or name'); return; }
-    const dup = i.resources.find(r => r.unit.toLowerCase() === unit.toLowerCase() && r.status !== 'left');
-    if (dup && !confirm(`${dup.unit} is already on this incident (${ST[dup.status].label}). Add it again anyway?`)) return;
-    const status = b.dataset.status, t = now();
-    const r = {id:uid(), rtype:mctx.rtype, unit, agency:val('f-agency'), personnel:Math.max(0, parseInt(val('f-pers')) || 0),
-               assignment:val('f-assign'), notes:val('f-notes'), status, statusAt:t, addedAt:t, history:[{status, at:t}]};
-    i.resources.push(r);
-    addLog(i, `${unit}${r.agency ? ' (' + r.agency + ')' : ''} added — ${ST[status].label}, ${r.personnel} personnel${r.assignment ? ', assigned ' + r.assignment : ''}`);
-    rememberUnit(r);
-    const another = $('#f-another').checked;
-    S.settings.addAnother = another;
-    save(); render();
-    toast(`${unit} added — ${ST[status].label}`);
-    if (another) {
-      ['f-unit', 'f-assign', 'f-notes'].forEach(id => $('#' + id).value = '');
-      const p = $('#f-pers'); p.value = RTYPES[mctx.rtype].pers; delete p.dataset.touched;
-      renderSaved();
-    } else closeModal();
   },
   'resource': b => { const r = findRes(b.dataset.id); if (r) resourceModal(r); },
+  'pick-assign': b => {
+    $('#e-assign').value = b.dataset.v;
+    document.querySelectorAll('#assign-chips .chip').forEach(c => c.classList.toggle('on', c === b));
+  },
   'set-status': b => {
     const i = inc(), r = findRes(b.dataset.id);
     if (!r) return;
@@ -689,24 +994,35 @@ const actions = {
     setStatus(i, r, b.dataset.status);
   },
   'save-resource': b => { const i = inc(), r = findRes(b.dataset.id); if (!r) return; applyResourceFields(i, r); save(); closeModal(); render(); },
-  'delete-resource': b => {
+  'delete-resource': async b => {
     const i = inc(), r = findRes(b.dataset.id);
-    if (!r || !confirm(`Remove ${r.unit} from this incident entirely?\n\nUse "Left Scene" instead if the unit simply left — removing deletes its record.`)) return;
+    if (!r || !(await ask(`Remove ${r.unit} from this incident entirely?\n\nIf the unit simply left, mark it "Left Scene" instead. Removing deletes its record.`, 'Remove', true))) return;
     i.resources = i.resources.filter(x => x !== r);
     addLog(i, `${r.unit} removed from incident (entered in error)`);
     save(); closeModal(); render();
   },
+  'par': b => { const i = inc(), r = findRes(b.dataset.id); if (r) confirmPar(i, [r]); },
+  'par-all': () => { const i = inc(), due = dueList(i); if (due.length) confirmPar(i, due); },
   'undo': () => {
     const u = undoState;
     $('#toast').classList.remove('show');
     if (!u) return;
     const i = S.incidents.find(x => x.id === u.incId), r = i && i.resources.find(x => x.id === u.resId);
     if (!r) return;
-    r.status = u.status; r.statusAt = u.statusAt; r.history.length = u.hist; i.log.length = u.log;
-    undoState = null; save(); render();
+    if (u.kind === 'add') {
+      i.resources = i.resources.filter(x => x !== r);
+      i.log.length = u.log;
+      undoState = null; save(); render(); refreshAdd();
+      toast(`Undone: ${r.unit} removed`);
+      return;
+    }
+    r.status = u.status; r.statusAt = u.statusAt; r.parAt = u.parAt; r.history.length = u.hist; i.log.length = u.log;
+    undoState = null; save(); render(); refreshAdd();
+    toast(`Undone: ${r.unit} back to ${ST[r.status].label}`);
   },
   'note': noteModal,
   'log': logModal,
+  'quick-note': b => { addLog(inc(), b.dataset.v, true); save(); closeModal(); toast('Logged: ' + b.dataset.v); },
   'add-note': b => {
     const text = val('f-note');
     if (!text) return;
@@ -714,44 +1030,42 @@ const actions = {
     if (b.dataset.keep) logModal(); else { closeModal(); toast('Note added to log'); }
   },
   'report': reportModal,
-  'share-report': () => { const i = inc(); navigator.share({title:(i.name || ITYPES[i.type].label) + ' — Incident Report', text:mctx.report}).catch(() => {}); },
-  'copy-report': async () => {
-    try { await navigator.clipboard.writeText(mctx.report); toast('Report copied'); }
-    catch (e) { toast('Copy failed — use Share instead'); }
-  },
-  'print-report': () => printReport(inc()),
-  'close-incident': () => {
+  'copy-report': () => copyText(mctx.report, $('#report-text')),
+  'share-report': () => { const i = inc(); navigator.share({title:(i.name || itype(i).label) + ' — Incident Report', text:mctx.report}).catch(() => {}); },
+  'close-incident': async () => {
     const i = inc(), c = counts(i), still = c.enroute + c.staging + c.working;
-    if (!confirm(still ? `${still} resource(s) are not marked "Left Scene".\n\nClose the incident anyway?` : 'Close this incident?')) return;
+    if (!(await ask(still ? `${still} resource(s) are not marked "Left Scene".\n\nClose the incident anyway?` : 'Close this incident?', 'Close incident', true))) return;
     i.closedAt = now();
     addLog(i, 'Incident closed');
-    save(); render();
-    reportModal();
+    save(); render(); reportModal();
   },
   'reopen-incident': () => { const i = inc(); i.closedAt = null; addLog(i, 'Incident reopened'); save(); render(); },
-  'delete-incident': () => {
+  'delete-incident': async () => {
     const i = inc();
-    if (!confirm(`Permanently delete "${i.name || ITYPES[i.type].label}" and its entire log? This cannot be undone.`)) return;
+    if (!(await ask(`Permanently delete "${i.name || itype(i).label}" and its entire log? This cannot be undone.`, 'Delete', true))) return;
     S.incidents = S.incidents.filter(x => x !== i);
     go({screen:'home'});
   },
   'theme': b => {
-    S.settings.theme = b.dataset.v;
-    document.documentElement.dataset.theme = b.dataset.v;
+    S.settings.theme = b.dataset.v; applyTheme();
     b.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === b));
     save();
   },
   'save-settings': () => {
-    Object.assign(S.settings, {icName:val('s-ic'), org:val('s-org'), rehabMin:Math.max(0, parseInt(val('s-rehab')) || 0)});
+    Object.assign(S.settings, {icName:val('s-ic'), org:val('s-org'), parMin:Math.max(0, parseInt(val('s-par')) || 0), parSound:$('#s-sound').checked});
     save(); closeModal(); render(); toast('Settings saved');
   },
-  'del-roster': b => {
-    S.roster = S.roster.filter(u => u.unit !== b.dataset.unit);
-    save(); settingsModal();
+  'del-roster': b => { S.roster = S.roster.filter(u => u.unit !== b.dataset.unit); save(); settingsModal(); },
+  'backup': backupModal,
+  'copy-backup': () => copyText($('#backup-text').value, $('#backup-text')),
+  'restore-text': () => {
+    try { mergeBackup($('#backup-text').value); }
+    catch (e) { toast('That text is not a valid tracker backup. Paste the full backup and try again.'); }
   },
-  'export-data': async () => {
+  'import-file': () => $('#import-file').click(),
+  'export-file': async () => {
     const name = `ic-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    const blob = new Blob([JSON.stringify(S, null, 1)], {type:'application/json'});
+    const blob = new Blob([backupText()], {type:'application/json'});
     const file = new File([blob], name, {type:'application/json'});
     if (navigator.canShare && navigator.canShare({files:[file]})) {
       try { await navigator.share({files:[file], title:'IC Tracker backup'}); return; } catch (e) { if (e.name === 'AbortError') return; }
@@ -760,54 +1074,43 @@ const actions = {
     a.href = URL.createObjectURL(blob); a.download = name; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   },
-  'import-data': () => $('#import-file').click(),
-  'erase-all': () => {
-    if (!confirm('Erase ALL incidents, logs and saved units from this iPad?')) return;
-    if (!confirm('Are you sure? This cannot be undone. Export a backup first if you need one.')) return;
+  'erase-all': async () => {
+    if (!(await ask('Erase ALL incidents, logs and saved units from this device?', 'Erase everything', true))) return;
+    if (!(await ask('This cannot be undone. Copy a backup first if you need one. Erase now?', 'Yes, erase', true))) return;
     S = JSON.parse(JSON.stringify(DEFAULTS));
     save(); go({screen:'home'});
   },
 };
 
 document.addEventListener('click', e => {
+  unlockAudio();
   const b = e.target.closest('[data-action]');
   if (!b || !actions[b.dataset.action]) return;
   e.preventDefault();
   actions[b.dataset.action](b, e);
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && $('#modal-root').innerHTML) closeModal();
+  if (e.key === 'Escape' && $('#confirm-root').innerHTML === '' && $('#modal-root').innerHTML) closeModal();
   if (e.key === 'Enter' && e.target.id === 'f-note' && e.target.tagName === 'INPUT') { e.preventDefault(); $('[data-action="add-note"]').click(); }
 });
-document.addEventListener('input', e => { if (e.target.id === 'f-pers') e.target.dataset.touched = 1; });
 
 $('#import-file').addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f) return;
   const rd = new FileReader();
   rd.onload = () => {
-    try {
-      const d = JSON.parse(rd.result);
-      if (!Array.isArray(d.incidents)) throw new Error('bad file');
-      const ids = new Set(S.incidents.map(i => i.id));
-      const newInc = d.incidents.filter(i => !ids.has(i.id));
-      S.incidents.push(...newInc);
-      (d.roster || []).forEach(u => { if (!S.roster.some(x => x.unit.toLowerCase() === u.unit.toLowerCase())) S.roster.push(u); });
-      save(); closeModal(); render();
-      toast(`Imported ${newInc.length} incident(s)`);
-    } catch (err) { toast('That file is not a valid IC Tracker backup'); }
+    try { mergeBackup(rd.result); } catch (err) { toast('That file is not a valid tracker backup'); }
     e.target.value = '';
   };
   rd.readAsText(f);
 });
 
-// Offline support when served from a web address
-if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-}
+// Offline support for the installed (GitHub) version
+if (window.IC_PWA && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 render();
 })();
 </script>
+
 </body>
 </html>
