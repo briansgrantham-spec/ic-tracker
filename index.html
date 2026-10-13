@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
 <script>window.IC_PWA = true;</script>
+<script src="config.js"></script>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
 </head>
 <body>
@@ -106,6 +107,8 @@ h2.section{font:700 15px var(--font-display);text-transform:uppercase;letter-spa
 .qa{flex:none;min-height:48px;padding:0 16px;border-radius:24px;background:var(--panel);border:1px solid var(--border);font-weight:600;white-space:nowrap}
 .qa.more{border-style:dashed}
 .qa.eoc{border:2px solid var(--red);font-weight:800}
+.sync-pill{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 12px;border-radius:17px;border:1px solid var(--border);background:var(--panel2);font-weight:700;font-size:14px;white-space:nowrap}
+.sync-pill .dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
 .board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:14px 16px 40px;align-items:start}
 .col{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-height:120px;min-width:0}
 .col-head{background:var(--c);color:var(--fg,#fff);padding:10px 12px;font:800 18px var(--font-display);letter-spacing:.02em;display:flex;justify-content:space-between;align-items:center}
@@ -312,17 +315,26 @@ function load(){
   } catch (e) { storageOK = false; }
   return JSON.parse(JSON.stringify(DEFAULTS));
 }
-function save(){
+function persistLocal(){
   try { localStorage.setItem(KEY, JSON.stringify(S)); storageOK = true; }
   catch (e) { storageOK = false; toast('Not saved: storage is blocked. Use Settings → Backup to copy your data.'); }
 }
+function save(){ persistLocal(); flush(); }
 try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch (e) {}
 
 let view = S.view || {screen:'home'};
 const inc = () => S.incidents.find(i => i.id === view.id);
 const findRes = id => { const i = inc(); return i && i.resources.find(r => r.id === id); };
 function go(v){ view = v; S.view = v; save(); closeModal(); render(); window.scrollTo(0, 0); }
-function addLog(i, text, isNote){ i.log.push({at:now(), text, note:!!isNote}); }
+function addLog(i, text, isNote){
+  const e = {id:uid(), at:now(), text, note:!!isNote}, by = myName();
+  if (by) e.by = by;
+  i.log.push(e);
+  return e;
+}
+// Older saved data has log entries without ids; sync needs one on every entry.
+function normalize(i){ i.resources = i.resources || []; i.log = i.log || []; i.log.forEach(l => { if (!l.id) l.id = uid(); }); }
+S.incidents.forEach(normalize);
 
 function counts(i){
   const c = {enroute:0, staging:0, working:0, left:0, personnel:0, totalPers:0, ma:0};
@@ -396,6 +408,7 @@ function homeHTML(){
     <div class="brand"><span class="logo">IC</span>
       <div style="min-width:0"><div class="title">Incident Resource Tracker</div><div class="sub">${esc(S.settings.org || 'Choose the incident type to start')}</div></div>
     </div>
+    <span data-sync>${syncPill()}</span>
     <div class="clock"><div class="big" data-clock></div><div class="small">Local time</div></div>
     <button class="btn ghost" data-action="settings">⚙︎ Settings</button>
   </header>
@@ -441,6 +454,7 @@ function incidentHTML(i){
         <div class="sub">${t.label} · Started ${fmtTime(i.startedAt)}${i.ic ? ' · IC ' + esc(i.ic) : ''}</div>
       </div>
     </div>
+    <span data-sync>${syncPill()}</span>
     <div class="clock"><div class="big" data-elapsed="${i.startedAt}" data-end="${i.closedAt || ''}"></div><div class="small">${i.closedAt ? 'Total time' : 'Elapsed · <span data-clock></span>'}</div></div>
     <div class="top-actions">
       <button class="btn" data-action="note">📝 <span class="lbl">Note</span></button>
@@ -567,12 +581,12 @@ async function copyText(text, fallbackEl){
 // ---------- Resource changes ----------
 function setStatus(i, r, status){
   if (r.status === status) return;
-  undoState = {kind:'status', incId:i.id, resId:r.id, status:r.status, statusAt:r.statusAt, parAt:r.parAt, hist:r.history.length, log:i.log.length};
+  undoState = {kind:'status', incId:i.id, resId:r.id, status:r.status, statusAt:r.statusAt, parAt:r.parAt, hist:r.history.length};
   const from = r.status;
   r.status = status; r.statusAt = now();
   if (status === 'working') r.parAt = r.statusAt;
   r.history.push({status, at:r.statusAt});
-  addLog(i, `${r.unit}: ${ST[from].short} → ${ST[status].label}`);
+  undoState.logId = addLog(i, `${r.unit}: ${ST[from].short} → ${ST[status].label}`).id;
   save(); render();
   toast(`${r.unit} → ${ST[status].label}`, true);
 }
@@ -582,9 +596,9 @@ function createResource(i, o){
   const r = {id:uid(), rtype:o.rtype, unit:o.unit, agency:o.agency || '', personnel:o.personnel, ma:!!o.ma,
              assignment:o.assignment || '', notes:'', status, statusAt:t, addedAt:t, history:[{status, at:t}]};
   if (status === 'working') r.parAt = t;
-  undoState = {kind:'add', incId:i.id, resId:r.id, log:i.log.length};
+  undoState = {kind:'add', incId:i.id, resId:r.id};
   i.resources.push(r);
-  addLog(i, `${r.unit}${r.agency && !r.unit.startsWith(r.agency) ? ' (' + r.agency + ')' : ''}${r.ma ? ' [mutual aid]' : ''} added — ${ST[status].label}, ${r.personnel} personnel`);
+  undoState.logId = addLog(i, `${r.unit}${r.agency && !r.unit.startsWith(r.agency) ? ' (' + r.agency + ')' : ''}${r.ma ? ' [mutual aid]' : ''} added — ${ST[status].label}, ${r.personnel} personnel`).id;
   save(); render();
   toast(`${r.unit} added — ${ST[status].label}`, true);
   return r;
@@ -817,7 +831,7 @@ function logModal(){
     <h3>📋 Activity Log</h3>
     <div class="muted">${i.log.length} entries · newest first</div>
     <div style="display:flex;gap:8px;margin-top:10px"><input id="f-note" placeholder="Add a note…" style="margin:0" autocomplete="off"><button class="btn primary" data-action="add-note" data-keep="1">Add</button></div>
-    <ul class="loglist">${i.log.slice().reverse().map(l => `<li class="${l.note ? 'note' : ''}"><span class="t">${fmtTime(l.at)}</span><span>${l.note ? '📝 ' : ''}${esc(l.text)}</span></li>`).join('')}</ul>
+    <ul class="loglist">${i.log.slice().reverse().map(l => `<li class="${l.note ? 'note' : ''}"><span class="t">${fmtTime(l.at)}</span><span>${l.note ? '📝 ' : ''}${esc(l.text)}${l.by ? ` <span class="muted">· ${esc(l.by)}</span>` : ''}</span></li>`).join('')}</ul>
     <div class="modal-actions"><button class="btn" data-action="close-modal">Close</button></div>`);
 }
 
@@ -840,7 +854,7 @@ function reportText(i){
     if (r.notes) L.push('    Notes: ' + r.notes);
   });
   L.push('', 'ACTIVITY LOG');
-  i.log.forEach(l => L.push(`${fmtTime(l.at)}  ${l.note ? '[NOTE] ' : ''}${l.text}`));
+  i.log.forEach(l => L.push(`${fmtTime(l.at)}  ${l.note ? '[NOTE] ' : ''}${l.text}${l.by ? '  (' + l.by + ')' : ''}`));
   return L.join('\n');
 }
 
@@ -863,6 +877,7 @@ function settingsModal(){
   const roster = S.roster.slice().sort((a, b) => a.unit.localeCompare(b.unit, undefined, {numeric:true}));
   openModal(`
     <h3>⚙︎ Settings</h3>
+    ${syncSettingsHTML()}
     <div class="grid2">
       <label>Default Incident Commander<input id="s-ic" value="${esc(s.icName)}" autocomplete="off"></label>
       <label>Agency name (shown on home screen)<input id="s-org" value="${esc(s.org)}" autocomplete="off"></label>
@@ -908,6 +923,7 @@ function mergeBackup(text){
   if (!d || !Array.isArray(d.incidents)) throw new Error('bad');
   const ids = new Set(S.incidents.map(i => i.id));
   const fresh = d.incidents.filter(i => i && i.id && !ids.has(i.id));
+  fresh.forEach(normalize);
   S.incidents.push(...fresh);
   (d.roster || []).forEach(u => { if (u && u.unit && !S.roster.some(x => x.unit.toLowerCase() === u.unit.toLowerCase())) S.roster.push(u); });
   save(); closeModal(); render();
@@ -931,11 +947,212 @@ function sampleIncident(){
       R('brush', 'Star Brush', 'Star', 2, [['enroute', 1], ['working', 9], ['left', 31]]),
     ]};
   addLog(i, 'Incident started — Structure Fire at 412 Oak St (sample)');
-  i.resources.forEach(r => r.history.forEach((h, k) => i.log.push({at:h.at, text:k ? `${r.unit}: → ${ST[h.status].label}` : `${r.unit} added — ${ST[h.status].label}`})));
+  i.resources.forEach(r => r.history.forEach((h, k) => i.log.push({id:uid(), at:h.at, text:k ? `${r.unit}: → ${ST[h.status].label}` : `${r.unit} added — ${ST[h.status].label}`})));
   i.log.sort((a, b) => a.at - b.at);
   i.log[0].at = t0;
   S.incidents.push(i);
   go({screen:'incident', id:i.id});
+}
+
+// ---------- Shared board (Firebase sync) ----------
+// Each incident is one cloud document: {meta, resources:{id:…}, log:{id:…}}.
+// Changes are pushed per field ("resources.<id>", "log.<id>", "meta"), so two people editing
+// different units never overwrite each other. `synced` remembers the last cloud version of every
+// part; comparing it with local data tells us what changed here (push) vs. there (pull).
+// Firestore queues writes made with no signal and sends them when the connection returns.
+const FB_VER = '10.12.2';
+const WINDOW_DAYS = 90;           // live-sync incidents started within this many days
+const SYNC_KEY = 'icTracker.synced';
+const sync = {adapter:null, email:null, unsub:null, ready:false, state:'off', detail:'', synced:{}};
+try { sync.synced = JSON.parse(localStorage.getItem(SYNC_KEY)) || {}; } catch (e) {}
+function saveSynced(){ try { localStorage.setItem(SYNC_KEY, JSON.stringify(sync.synced)); } catch (e) {} }
+function testAdapter(){ try { return window.frameElement && window.frameElement.icAdapter; } catch (e) { return null; } }
+function myName(){ return S.settings.myName || (sync.email ? sync.email.split('@')[0] : ''); }
+
+// Stable JSON (sorted keys) so local and cloud copies compare equal
+function SJ(v){
+  if (v === null || typeof v !== 'object') return JSON.stringify(v === undefined ? null : v);
+  if (Array.isArray(v)) return '[' + v.map(SJ).join(',') + ']';
+  return '{' + Object.keys(v).filter(k => v[k] !== undefined).sort().map(k => JSON.stringify(k) + ':' + SJ(v[k])).join(',') + '}';
+}
+function parts(i){
+  const p = {}, meta = {};
+  Object.keys(i).forEach(k => { if (k !== 'resources' && k !== 'log' && k[0] !== '_') meta[k] = i[k]; });
+  p.meta = SJ(meta);
+  i.resources.forEach(r => { p['resources.' + r.id] = SJ(r); });
+  i.log.forEach(l => { p['log.' + l.id] = SJ(l); });
+  return p;
+}
+function remoteParts(d){
+  const p = {meta:SJ(d.meta || {})};
+  Object.keys(d.resources || {}).forEach(id => { p['resources.' + id] = SJ(d.resources[id]); });
+  Object.keys(d.log || {}).forEach(id => { p['log.' + id] = SJ(d.log[id]); });
+  return p;
+}
+function docFromParts(p){
+  const d = {meta:JSON.parse(p.meta), resources:{}, log:{}};
+  Object.keys(p).forEach(k => {
+    const [kind, id] = k.split('.');
+    if (id) d[kind][id] = JSON.parse(p[k]);
+  });
+  return d;
+}
+// Update objects in place so code holding a reference keeps working
+function reuse(list, out, prefix){
+  const byId = Object.fromEntries(list.map(x => [x.id, x]));
+  return Object.keys(out).filter(k => k.startsWith(prefix)).map(k => {
+    const v = JSON.parse(out[k]), o = byId[v.id] || {};
+    Object.keys(o).forEach(key => { if (!(key in v)) delete o[key]; });
+    return Object.assign(o, v);
+  });
+}
+
+// Three-way merge of one cloud document into local data. Returns true if local data changed.
+function mergeIncident(id, data){
+  const base = sync.synced[id] || {}, rp = remoteParts(data);
+  let loc = S.incidents.find(i => i.id === id);
+  const lp = loc ? parts(loc) : {}, out = {};
+  let changed = false;
+  new Set([...Object.keys(base), ...Object.keys(lp), ...Object.keys(rp)]).forEach(k => {
+    const b = base[k], l = lp[k], r = rp[k];
+    const v = l === b ? r : l;          // unchanged here → take theirs; changed here → keep ours (pushed next)
+    if (v !== l) changed = true;
+    if (v !== undefined) out[k] = v;
+  });
+  sync.synced[id] = rp;
+  if (!changed || !out.meta) return changed;
+  const meta = JSON.parse(out.meta);
+  if (!loc) { loc = {resources:[], log:[]}; S.incidents.push(loc); }
+  Object.keys(loc).forEach(k => { if (k !== 'resources' && k !== 'log' && !(k in meta)) delete loc[k]; });
+  Object.assign(loc, meta);
+  loc.resources = reuse(loc.resources, out, 'resources.').sort((a, b) => a.addedAt - b.addedAt);
+  loc.log = reuse(loc.log, out, 'log.').sort((a, b) => a.at - b.at);
+  return true;
+}
+
+// Push everything that differs from the last known cloud version
+function flush(){
+  const A = sync.adapter;
+  if (!A || !sync.ready || !sync.email) return;
+  const localIds = new Set();
+  S.incidents.forEach(i => {
+    localIds.add(i.id);
+    const lp = parts(i), base = sync.synced[i.id];
+    if (!base) { A.set(i.id, docFromParts(lp)).catch(writeError); sync.synced[i.id] = lp; return; }
+    const upd = {};
+    let n = 0;
+    new Set([...Object.keys(lp), ...Object.keys(base)]).forEach(k => {
+      if (lp[k] !== base[k]) { upd[k] = lp[k] === undefined ? A.del : JSON.parse(lp[k]); n++; }
+    });
+    if (n) { A.update(i.id, upd).catch(writeError); sync.synced[i.id] = lp; }
+  });
+  Object.keys(sync.synced).forEach(id => {
+    if (!localIds.has(id)) { A.remove(id).catch(writeError); delete sync.synced[id]; }
+  });
+  saveSynced();
+}
+function writeError(e){
+  setSyncState('error', e && e.code === 'permission-denied' ? 'denied' : '');
+  toast(e && e.code === 'permission-denied' ? 'The shared board refused this change. Your account may not have access.' : 'A change could not be sent to the shared board.');
+}
+
+function onRemote(docs, meta, cutoff){
+  let changed = false;
+  const ids = new Set();
+  docs.forEach(d => { ids.add(d.id); if (mergeIncident(d.id, d.data)) changed = true; });
+  // Only a confirmed server answer can tell us an incident was deleted elsewhere
+  if (!meta.fromCache) {
+    S.incidents.slice().forEach(i => {
+      if (sync.synced[i.id] && !ids.has(i.id) && i.startedAt >= cutoff) {
+        S.incidents = S.incidents.filter(x => x !== i);
+        delete sync.synced[i.id];
+        changed = true;
+      }
+    });
+  }
+  sync.ready = true;
+  flush();
+  persistLocal(); saveSynced();
+  setSyncState(meta.fromCache ? 'offline' : meta.pending ? 'sending' : 'live');
+  if (changed) {
+    if (view.screen === 'incident' && !inc()) { view = {screen:'home'}; S.view = view; closeModal(); }
+    render(); refreshAdd();
+  }
+}
+
+function stopListening(){ if (sync.unsub) { sync.unsub(); sync.unsub = null; } sync.ready = false; }
+
+function loadScript(src){
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = () => rej(new Error('Could not load ' + src));
+    document.head.appendChild(s);
+  });
+}
+async function firebaseAdapter(cfg){
+  if (!window.firebase) {
+    for (const m of ['app', 'auth', 'firestore']) await loadScript(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-${m}-compat.js`);
+  }
+  if (!firebase.apps.length) firebase.initializeApp(cfg);
+  const db = firebase.firestore();
+  try { await db.enablePersistence({synchronizeTabs:true}); } catch (e) {}
+  const auth = firebase.auth(), col = db.collection('incidents');
+  return {
+    del: firebase.firestore.FieldValue.delete(),
+    onAuth: cb => auth.onAuthStateChanged(u => cb(u ? u.email : null)),
+    signIn: (email, pw) => auth.signInWithEmailAndPassword(email, pw),
+    signOut: () => auth.signOut(),
+    listen: (cutoff, onSnap, onErr) => col.where('meta.startedAt', '>=', cutoff).onSnapshot({includeMetadataChanges:true},
+      snap => onSnap(snap.docs.map(d => ({id:d.id, data:d.data()})), {fromCache:snap.metadata.fromCache, pending:snap.metadata.hasPendingWrites}), onErr),
+    set: (id, data) => col.doc(id).set(data),
+    update: (id, fields) => col.doc(id).update(fields),
+    remove: id => col.doc(id).delete(),
+  };
+}
+
+async function startSync(){
+  const cfg = window.IC_FIREBASE, test = testAdapter();
+  if (!cfg && !test) return;
+  setSyncState('connecting');
+  try { sync.adapter = test || await firebaseAdapter(cfg); }
+  catch (e) { setSyncState('unavailable'); return; }
+  sync.adapter.onAuth(email => {
+    stopListening();
+    sync.email = email;
+    if (!email) { setSyncState('signedout'); return; }
+    setSyncState('connecting');
+    const cutoff = now() - WINDOW_DAYS * 86400000;
+    sync.unsub = sync.adapter.listen(cutoff, (docs, meta) => onRemote(docs, meta, cutoff),
+      err => setSyncState('error', err && err.code === 'permission-denied' ? 'denied' : ''));
+  });
+}
+
+function setSyncState(state, detail){
+  sync.state = state; sync.detail = detail || '';
+  document.querySelectorAll('[data-sync]').forEach(el => { el.innerHTML = syncPill(); });
+}
+function syncPill(){
+  const m = {
+    connecting:['var(--gray)', 'Connecting…'], live:['var(--green)', 'Live'], sending:['var(--amber)', 'Sending…'],
+    offline:['var(--amber)', 'Offline · will sync'], signedout:['var(--gray)', 'Not signed in'],
+    error:['var(--red)', sync.detail === 'denied' ? 'No access' : 'Sync problem'], unavailable:['var(--gray)', 'Sync unavailable'],
+  }[sync.state];
+  return m ? `<button class="sync-pill" data-action="settings" style="--c:${m[0]}"><span class="dot"></span>${m[1]}</button>` : '';
+}
+function syncSettingsHTML(){
+  if (sync.state === 'off') return '';
+  if (!sync.adapter) return `<span class="field-label">Shared board</span><div class="muted" style="margin-top:6px">Couldn't reach the shared board. Connect to the internet and reopen the app.</div>`;
+  if (!sync.email) return `
+    <span class="field-label">Shared board — sign in to share this board live with the EOC</span>
+    <div class="grid2">
+      <label>Email<input id="sy-email" type="email" autocomplete="username" autocapitalize="off" autocorrect="off"></label>
+      <label>Password<input id="sy-pw" type="password" autocomplete="current-password"></label>
+    </div>
+    <div class="modal-actions" style="justify-content:flex-start"><button class="btn primary" data-action="sync-signin">Sign in</button></div>`;
+  return `
+    <span class="field-label">Shared board</span>
+    <div class="seg" style="align-items:center"><span style="flex:1;min-width:200px">Signed in as <b>${esc(sync.email)}</b></span>${syncPill()}<button class="btn" data-action="sync-signout">Sign out</button></div>
+    <label>Your name in the log<input id="s-me" value="${esc(S.settings.myName || '')}" placeholder="${esc(sync.email.split('@')[0])}" autocomplete="off"></label>`;
 }
 
 // ---------- Actions ----------
@@ -1011,12 +1228,12 @@ const actions = {
     if (!r) return;
     if (u.kind === 'add') {
       i.resources = i.resources.filter(x => x !== r);
-      i.log.length = u.log;
+      i.log = i.log.filter(l => l.id !== u.logId);
       undoState = null; save(); render(); refreshAdd();
       toast(`Undone: ${r.unit} removed`);
       return;
     }
-    r.status = u.status; r.statusAt = u.statusAt; r.parAt = u.parAt; r.history.length = u.hist; i.log.length = u.log;
+    r.status = u.status; r.statusAt = u.statusAt; r.parAt = u.parAt; r.history.length = u.hist; i.log = i.log.filter(l => l.id !== u.logId);
     undoState = null; save(); render(); refreshAdd();
     toast(`Undone: ${r.unit} back to ${ST[r.status].label}`);
   },
@@ -1042,7 +1259,7 @@ const actions = {
   'reopen-incident': () => { const i = inc(); i.closedAt = null; addLog(i, 'Incident reopened'); save(); render(); },
   'delete-incident': async () => {
     const i = inc();
-    if (!(await ask(`Permanently delete "${i.name || itype(i).label}" and its entire log? This cannot be undone.`, 'Delete', true))) return;
+    if (!(await ask(`Permanently delete "${i.name || itype(i).label}" and its entire log?${sync.email ? ' It will be deleted for everyone on the shared board.' : ''} This cannot be undone.`, 'Delete', true))) return;
     S.incidents = S.incidents.filter(x => x !== i);
     go({screen:'home'});
   },
@@ -1053,6 +1270,7 @@ const actions = {
   },
   'save-settings': () => {
     Object.assign(S.settings, {icName:val('s-ic'), org:val('s-org'), parMin:Math.max(0, parseInt(val('s-par')) || 0), parSound:$('#s-sound').checked});
+    if ($('#s-me')) S.settings.myName = val('s-me');
     save(); closeModal(); render(); toast('Settings saved');
   },
   'del-roster': b => { S.roster = S.roster.filter(u => u.unit !== b.dataset.unit); save(); settingsModal(); },
@@ -1075,10 +1293,33 @@ const actions = {
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   },
   'erase-all': async () => {
+    if (sync.email) {
+      // Signed in: only clear this device; the shared board is untouched.
+      if (!(await ask('Sign out and clear all incidents from THIS device?\n\nThe shared board is not affected. Signing back in downloads it again.', 'Sign out and clear', true))) return;
+      stopListening();
+      await sync.adapter.signOut().catch(() => {});
+      sync.synced = {}; saveSynced();
+      S = JSON.parse(JSON.stringify(DEFAULTS));
+      persistLocal(); go({screen:'home'});
+      return;
+    }
     if (!(await ask('Erase ALL incidents, logs and saved units from this device?', 'Erase everything', true))) return;
     if (!(await ask('This cannot be undone. Copy a backup first if you need one. Erase now?', 'Yes, erase', true))) return;
     S = JSON.parse(JSON.stringify(DEFAULTS));
     save(); go({screen:'home'});
+  },
+  'sync-signin': () => {
+    const email = val('sy-email'), pw = $('#sy-pw').value;
+    if (!email || !pw) { toast('Enter your email and password'); return; }
+    sync.adapter.signIn(email, pw)
+      .then(() => { closeModal(); toast('Signed in. Connecting to the shared board…'); })
+      .catch(() => toast('Sign-in failed. Check the email and password, and that you have internet.'));
+  },
+  'sync-signout': async () => {
+    if (!(await ask('Sign out of the shared board?\n\nIncidents stay on this device, but changes stop going to the EOC until you sign in again.', 'Sign out'))) return;
+    stopListening();
+    sync.adapter.signOut().catch(() => {});
+    closeModal();
   },
 };
 
@@ -1106,9 +1347,10 @@ $('#import-file').addEventListener('change', e => {
 });
 
 // Offline support for the installed (GitHub) version
-if (window.IC_PWA && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+if (window.IC_PWA && !testAdapter() && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 render();
+startSync();
 })();
 </script>
 

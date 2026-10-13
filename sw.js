@@ -1,7 +1,8 @@
-﻿// Caches the app so it opens with no internet. Bump CACHE whenever index.html changes.
-const CACHE = 'ic-tracker-v3';
-const ASSETS = ['./', './index.html', './manifest.json', './icon-180.png', './icon-512.png'];
-const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
+// Caches the app so it opens with no internet. Bump CACHE whenever any app file changes.
+const CACHE = 'ic-tracker-v4';
+const ASSETS = ['./', './index.html', './config.js', './manifest.json', './icon-180.png', './icon-512.png'];
+// Fonts and the Firebase library are cached the first time they load, so they work offline too.
+const CDN_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com', 'www.gstatic.com'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
@@ -15,12 +16,14 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  const isFont = FONT_HOSTS.includes(new URL(e.request.url).hostname);
+  const url = new URL(e.request.url);
+  const sameOrigin = url.origin === self.location.origin, cdn = CDN_HOSTS.includes(url.hostname);
+  // Leave everything else (the live database connection, sign-in) to the network
+  if (!sameOrigin && !cdn) return;
   e.respondWith(
-    caches.match(e.request, {ignoreSearch: !isFont}).then(hit => hit || fetch(e.request).then(res => {
-      // Keep a copy of the web fonts so they also work offline
-      if (isFont && res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
+    caches.match(e.request, {ignoreSearch: sameOrigin}).then(hit => hit || fetch(e.request).then(res => {
+      if (cdn && res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
       return res;
-    }).catch(() => isFont ? Response.error() : caches.match('./index.html')))
+    }).catch(() => sameOrigin ? caches.match('./index.html') : Response.error()))
   );
 });
